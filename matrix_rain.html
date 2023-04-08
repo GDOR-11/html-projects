@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang = 'pt-BR'>
+	<head>
+		<meta charset = 'utf-8' name = 'viewport' content = 'width = device-width, initial-scale = 1'>
+		<title>matrix rain</title>
+		<style>
+			body {
+				margin: 0px;
+				overflow: hidden;
+			}
+		</style>
+	</head>
+	<body>
+		<canvas id = 'canvas' style = 'background-color: #000000;'></canvas>
+		<script>
+			class Letra {
+				constructor() {
+					this.i = Math.floor(Math.random() * largura / tamanho_letra);
+					this.j = 0;
+				}
+				atualizar(letras) {
+					var x = this.i * tamanho_letra;
+					var y = this.j * tamanho_letra;
+					pincel.fillStyle = 'black';
+					pincel.fillRect(x, y - tamanho_letra + 4, tamanho_letra, tamanho_letra);
+					pincel.font = `${tamanho_letra}px arial`;
+					pincel.fillStyle = 'rgb(0, 255, 0)';
+					pincel.fillText(String.fromCharCode(996902 + Math.random() * 6031), x, y);
+					this.j++;
+					if(this.j > Math.floor(altura / tamanho_letra) + 1) {
+						letras.splice(letras.indexOf(this), 1);
+					}
+				}
+			}
+			var canvas = document.getElementById('canvas');
+			var pincel = canvas.getContext('2d');
+			var largura = window.innerWidth;
+			var altura = window.innerHeight;
+			canvas.width = largura;
+			canvas.height = altura;
+			window.onresize = function() {
+				largura = window.innerWidth;
+				altura = window.innerHeight;
+				canvas.width = largura;
+				canvas.height = altura;
+			}
+			var tamanho_letra = 25;
+			var letras = [];
+			function renderizar() {
+				pincel.fillStyle = 'rgba(0, 0, 0, 0.2)';
+				pincel.fillRect(0, 0, largura, altura);
+				for(var i = 0;i < 2;i++) {
+					letras.push(new Letra());
+				}
+				for(var i = letras.length - 1;i >= 0;i--) {
+					letras[i].atualizar(letras);
+				}
+			}
+			setInterval(renderizar, 100);
+
+			document.onmousedown = function(event) {
+				if(document.fullscreenElement) {
+					if(document.exitFullscreen) {
+						document.exitFullscreen();
+					}
+				} else {
+					document.documentElement.requestFullscreen();
+					document.body.style.cursor = 'none';
+				}
+			}
+			document.onfullscreenchange = function(event) {
+				if(!document.fullscreenElement) {
+					document.body.style.cursor = 'context-menu';
+				}
+			}
+		</script>
+	</body>
+</html>

@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang = 'pt-BR'>
+	<head>
+		<meta charset = 'utf-8' name = 'viewport' content = 'width = device-width, initial-scale = 1'>
+		<title>DCD vs CCD</title>
+		<style>
+			body {
+				margin: 0px;
+				overflow: hidden;
+			}
+		</style>
+	</head>
+	<body>
+		<canvas id = 'canvas2' style = 'background-color: #000'></canvas>
+		<canvas id = 'canvas' style = 'position:absolute;top:0px;left:0px;'></canvas>
+		<script>
+			class Bola {
+				constructor(r, x, y, vx, vy) {
+					this.r = r;
+					this.x = x;
+					this.y = y;
+					this.vx = vx;
+					this.vy = vy;
+					this.xAnteriores = [];
+					this.yAnteriores = [];
+				}
+				desenhar(cor1, cor2) {
+					pincel.strokeStyle = cor1;
+					pincel.lineJoin = 'round';
+					pincel.lineWidth = this.r * 2;
+					pincel.strokeRect(this.x, this.y, 0.3, 0.3);
+					pincel2.strokeStyle = cor2;
+					pincel2.beginPath();
+					pincel2.moveTo(this.x, this.y);
+					for(var i = this.xAnteriores.length - 1;i >= 0;i--) {
+						pincel2.lineTo(this.xAnteriores[i], this.yAnteriores[i]);
+					}
+					pincel2.stroke();
+					this.xAnteriores = [];
+					this.yAnteriores = [];
+				}
+				salvar_posicao() {
+					this.xAnteriores.push(this.x);
+					this.yAnteriores.push(this.y);
+				}
+			}
+			class BolaContinua extends Bola {
+				constructor(r, x, y, vx, vy) {
+					super(r, x, y, vx, vy);
+				}
+				atualizar(dt) {
+					var dt_restante = dt;
+					while(dt_restante > 0) {
+						var t = 1;
+						var inverterX = false;
+						var inverterY = false;
+
+						var t1 = (this.r - this.x) / (this.vx * dt_restante);
+						var t2 = (largura - this.r - this.x) / (this.vx * dt_restante);
+						var t3 = (-this.vy - Math.sqrt(this.vy * this.vy - 2 * gy * (this.y - this.r))) / (gy * dt_restante);
+						var t4 = (-this.vy + Math.sqrt(this.vy * this.vy - 2 * gy * (this.y - altura + this.r))) / (gy * dt_restante);
+
+						if(t1 > 0 && t1 <= t) {
+							t = t1;
+							inverterX = true;
+						}
+						if(t2 > 0 && t2 <= t) {
+							t = t2;
+							inverterX = true;
+						}
+						if(t3 > 0 && t3 <= t) {
+							t = t3;
+							inverterY = true;
+						}
+						if(t4 > 0 && t4 <= t) {
+							t = t4;
+							inverterY = true;
+						}
+						this.salvar_posicao();
+						var dt_atual = t * dt_restante;
+						this.vy += gy * dt_atual;
+						this.x += this.vx * dt_atual;
+						this.y += -gy * dt_atual * dt_atual / 2 + this.vy * dt_atual;
+						if(inverterX) {
+							this.vx *= -0.70710678118;
+						}
+						if(inverterY) {
+							this.vy *= -0.70710678118;
+						}
+						dt_restante = (1 - t) * dt_restante;
+					}
+				}
+			}
+			class BolaDiscreta extends Bola {
+				constructor(r, x, y, vx, vy) {
+					super(r, x, y, vx, vy);
+				}
+				mover(dt) {
+					this.x += this.vx * dt;
+					this.y += this.vy * dt;
+				}
+				atualizar(dt) {
+					this.vy += gy * dt;
+					this.salvar_posicao();
+					this.mover(dt);
+					if(this.x >= largura - this.r || this.x <= this.r) {
+						this.mover(-dt / 2);
+						this.salvar_posicao();
+						this.vx *= -0.70710678118;
+						this.mover(dt / 2);
+					}
+					if(this.y >= altura - this.r || this.y <= this.r) {
+						this.mover(-dt / 2);
+						this.salvar_posicao();
+						this.vy *= -0.70710678118;
+						this.mover(dt / 2);
+					}
+					this.salvar_posicao();
+				}
+			}
+			var canvas = document.getElementById('canvas');
+			var pincel = canvas.getContext('2d');
+			var canvas2 = document.getElementById('canvas2');
+			var pincel2 = canvas2.getContext('2d');
+			var largura = window.innerWidth;
+			var altura = window.innerHeight;
+			canvas.width = largura;
+			canvas.height = altura;
+			canvas2.width = largura;
+			canvas2.height = altura;
+			window.onresize = function() {
+				largura = window.innerWidth;
+				altura = window.innerHeight;
+				canvas.width = largura;
+				canvas.height = altura;
+				var img_data = pincel2.getImageData(0, 0, canvas2.width, canvas2.height);
+				canvas2.width = Math.max(canvas2.width, largura);
+				canvas2.height = Math.max(canvas2.height, altura);
+				pincel2.putImageData(img_data, 0, 0);
+			}
+			var gy = 50 * 9.80665;
+			var bola1 = new BolaDiscreta(10, 100, altura / 2, 250, -500);
+			var bola2 = new BolaContinua(10, 100, altura / 2, 250, -500);
+			var dt = 1 / 60;
+			var frame_count = 0;
+			var renderizar = true;
+			function renderizacao() {
+				for(var i = 0;i < 1;i++) {
+					bola1.atualizar(dt);
+					if(frame_count % 1 == 0) {
+						bola2.atualizar(dt * 1);
+					}
+				}
+				pincel.clearRect(0, 0, largura, altura);
+				bola1.desenhar('red', 'rgba(255, 0, 0, 0.5)');
+				bola2.desenhar('blue', 'rgba(0, 0, 255, 0.75)');
+				frame_count++;
+				if(renderizar) {
+					requestAnimationFrame(renderizacao);
+				}
+			}
+			requestAnimationFrame(renderizacao);
+		</script>
+	</body>
+</html>

@@ -1,0 +1,44 @@
+<canvas id = 'tela' width = 1528 height = 706></canvas>
+<script>
+	var tela = document.getElementById('tela');
+	var pincel = tela.getContext('2d');
+	async function esperar(milissegundos) {
+		return new Promise(resolve => setTimeout(resolve, milissegundos));
+	}
+	function calculaPonto() {
+		var escolha = Math.random() * coordenadas.length;
+		for(var i = 1;i <= coordenadas.length;i++){
+			if(escolha < i) {
+				xAnterior += (coordenadas[i - 1][0] - xAnterior) / 2;
+				yAnterior += (coordenadas[i - 1][1] - yAnterior) / 2;
+				break;
+			}
+		}
+		pincel.beginPath();
+		pincel.arc(xAnterior, yAnterior, 50000 / qualidade, 0, Math.PI * 2);
+		pincel.fill();
+	}
+//	var coordenadas = [[Math.random() * 1528, Math.random() * 706], [Math.random() * 1528, Math.random() * 706], [Math.random() * 1528, Math.random() * 706]];
+	var coordenadas = [[764, 0], [356.39070995212415, 706], [1171.60929004787585, 706]];
+	var xAnterior = Math.random() * 1528;
+	var yAnterior = Math.random() * 706;
+	var qualidade = 1000000;
+	for(var i = 0;i < coordenadas.length;i++) {
+		pincel.beginPath();
+		pincel.arc(coordenadas[i][0], coordenadas[i][1], 5, 0, Math.PI * 2);
+		pincel.fill();
+	}
+	pincel.fillStyle = 'blue';
+	pincel.beginPath();
+	pincel.arc(xAnterior, yAnterior, 50000 / qualidade, 0, Math.PI * 2);
+	pincel.fill();
+	async function calcular_triangulo() {
+		for(var i = 0;i <= qualidade;i++) {
+			if(i % 100 == 0) {
+				await esperar(1);
+			}
+			calculaPonto();
+		}
+	}
+	calcular_triangulo();
+</script>

@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang = 'pt-BR'>
+	<head>
+		<meta charset = 'utf-8' name = 'viewport' content = 'width = device-width, initial-scale = 1'>
+		<meta http-equiv = 'X-UA-Compatible' content = 'ie = edge'>
+		<title>Poisson Disc Sampler</title>
+		<style>
+			body {
+				margin: 0px;
+				overflow: hidden;
+			}
+		</style>
+		<script src = 'PrivateClass.js'></script>
+		<script src = 'PoissonDiscSampler_2.js'></script>
+	</head>
+	<body>
+		<canvas id = 'canvas' style = 'background-color: #000;'></canvas>
+		<script>
+			function resize() {
+				largura = window.innerWidth;
+				altura = window.innerHeight;
+				img_data = pincel.getImageData(0, 0, canvas.width, canvas.height);
+				canvas.width = Math.max(canvas.width, largura);
+				canvas.height = Math.max(canvas.height, altura);
+				pincel.putImageData(img_data, 0, 0);
+			}
+			var canvas = document.getElementById('canvas');
+			var pincel = canvas.getContext('2d');
+			resize();
+			window.onresize = resize;
+
+			var poisson_disc_sampler = new PoissonDiscSampler(3, 8, largura, altura);
+			var passive = false;
+			try {
+				window.addEventListener('event-listener', null, Object.defineProperty({}, 'passive', {get: () => passive = {passive: true}}));
+			} catch(error) {}
+
+			var modo = 'instantaneo';
+			window.addEventListener('mousedown', function(event) {
+				pincel.clearRect(0, 0, largura, altura);
+				if(modo == 'instantaneo') {
+					console.clear();
+					console.time('poisson disc sampler');
+					var pontos = poisson_disc_sampler.sample();
+					console.timeEnd('poisson disc sampler');
+					console.time('drawing');
+					pincel.fillStyle = 'blue';
+					for(var ponto of pontos) {
+						pincel.fillRect(ponto.x, ponto.y, 1, 1);
+					}
+					console.timeEnd('drawing');
+					modo = 'animado';
+				} else {
+					function renderizar() {
+						for(var i = 0;i < 256 && poisson_disc_sampler.activeList.length > 0;i++) {
+							var pontos = poisson_disc_sampler.sampleStep();
+							pincel.fillStyle = 'blue';
+							for(var ponto of pontos) {
+								pincel.fillRect(ponto.x, ponto.y, 1, 1);
+							}
+						}
+						if(poisson_disc_sampler.activeList.length > 0) {
+							requestAnimationFrame(renderizar);
+						}
+					}
+					poisson_disc_sampler.clear();
+					poisson_disc_sampler.addPoint();
+					requestAnimationFrame(renderizar);
+					modo = 'instantaneo';
+				}
+			}, passive);
+		</script>
+	</body>
+</html>

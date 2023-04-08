@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang = 'pt-BR'>
+	<head>
+		<meta charset = 'utf-8' name = 'viewport' content = 'width = device-width, initial-scale = 1'>
+		<title>euler integration</title>
+		<style>
+			body {
+				margin: 0px;
+				overflow: hidden;
+			}
+		</style>
+	</head>
+	<body>
+		<canvas id = 'canvas2' style = 'background-color: #000;'></canvas>
+		<canvas id = 'canvas' style = 'position: absolute;top: 0px;left: 0px;'></canvas>
+		<script>
+			function f(x) {
+				return Math.sin(10 / (x - 10 - (1 + Math.sqrt(5)) / 2));
+			}
+			function df(x) {
+				var h = 1e-10;
+				return (f(x + h) - f(x)) / h;
+			}
+			var canvas = document.getElementById('canvas');
+			var pincel = canvas.getContext('2d');
+			var canvas2 = document.getElementById('canvas2');
+			var pincel2 = canvas2.getContext('2d');
+			var largura = window.innerWidth;
+			var altura = window.innerHeight;
+			canvas.width = largura;
+			canvas.height = altura;
+			canvas2.width = largura;
+			canvas2.height = altura;
+			var escala = 100;
+			pincel2.strokeStyle = 'blue';
+			pincel2.beginPath();
+			for(var x = 0;x < largura;x += 0.01) {
+				pincel2.lineTo(x, altura / 2 - f(x / escala) * escala);
+			}
+			pincel2.stroke();
+			pincel.strokeStyle = 'red';
+			var dx = 1;
+			var x = 0;
+			var y = f(x);
+
+			var iter = 1;
+			function renderizar() {
+				for(var i = 0;i < iter;i++) {
+					pincel.beginPath();
+					pincel.moveTo(x * escala, altura / 2 - y * escala);
+					y += df(x) * dx;
+					x += dx;
+					pincel.lineTo(x * escala, altura / 2 - y * escala);
+					pincel.stroke();
+				}
+				if(x >= largura / escala + dx) {
+					dx /= 2;
+					pincel.clearRect(0, 0, largura, altura);
+					pincel.strokeStyle = 'red';
+					x = 0;
+					y = f(x);
+					clearInterval(intervalo);
+					iter = 1 + 0.001 / dx;
+					intervalo = setInterval(renderizar, 1000 * dx);
+				}
+			}
+			var intervalo = setInterval(renderizar, 1000 * dx);
+		</script>
+	</body>
+</html>

@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang = 'en-US'>
+	<head>
+		<meta charset = 'utf-8' name = 'viewport' content = 'width = device-width, initial-scale = 1'>
+		<meta http-equiv = 'X-UA-Compatible' content = 'ie = edge'>
+		<title>test</title>
+		<style>
+			.folder {
+				width: 94%;
+				height: 10%;
+				margin: 0% 1%;
+				padding: 0% 2%;
+				position: relative;
+				cursor: default;
+			}
+			.folder-top-section {
+				border: 1px solid lightgray;
+				border-bottom: 1px solid black;
+				position: relative;
+				left: -3%;
+				width: 94%;
+				margin: 1%;
+				padding: 2%;
+
+
+				/* why */
+				user-select: none;
+				-webkit-user-select: none;
+				-khtml-user-select: none;
+				-moz-user-select: none;
+				-ms-user-select: none;
+			}
+			.folder-title {
+				font-size: 300%;
+				display: inline;
+			}
+			.folder-arrow {
+				display: inline;
+				transition: transform 0.5s ease;
+				fill: none;
+				stroke: dimgray;
+				stroke-width: 3;
+				stroke-linecap: round;
+				stroke-linejoin: round;
+			}
+			.folder-arrow-open-animation {
+				transform: rotate(180deg);
+			}
+			.folder-arrow-close-animation {
+				transform: rotate(0deg);
+			}
+			.folder-content {
+				--height: 0px;
+				transition: max-height 0.5s ease;
+				overflow: hidden;
+			}
+			.folder-content-open-animation {
+				max-height: var(--height);
+			}
+			.folder-content-close-animation {
+				max-height: 0px;
+			}
+		</style>
+	</head>
+	<body>
+		<div class = 'folder'>
+			<div class = 'folder-top-section' id = 'top-section'>
+				<svg class = 'folder-arrow' id = 'arrow' width = 30 height = 20>
+					<polyline points = '5,5 15,15 25,5'></polyline>
+				</svg>
+				<p class = 'folder-title'>&nbsp;title 1</p>
+			</div>
+			<div class = 'folder-content' id = 'content'>
+				<p>content 1</p>
+				<p>content 2</p>
+			</div>
+		</div>
+		<div class = 'folder'>
+			<div class = 'folder-top-section' id = 'top-section'>
+				<svg class = 'folder-arrow' id = 'arrow' width = 30 height = 20>
+					<polyline class = 'folder-arrow' points = '5,5 15,15 25,5'></polyline>
+				</svg>
+				<p class = 'folder-title'>&nbsp;title 2</p>
+			</div>
+			<div class = 'folder-content' id = 'content'>
+				<p>centent 3</p>
+				<p>content 4</p>
+			</div>
+		</div>
+
+		<script>
+			function initFolder(folder) {
+				let folderContent = folder.children['content'];
+				folderContent.style.setProperty('--height', folderContent.clientHeight + 'px');
+				folderContent.classList.add('folder-content-close-animation');
+
+				let folderArrow = folder.children['top-section'].children['arrow'];
+				folderArrow.classList.add('folder-arrow-close-animation');
+			}
+
+			function onFolderClick(event) { // this == folder clicked
+				let folderTopSection = this.children['top-section'];
+				if(event.path.includes(folderTopSection)) {
+					let folderArrow = folderTopSection.children['arrow'];
+					let folderArrowAnimationClass = folderArrow.classList[1];
+					switch(folderArrowAnimationClass) {
+						case animations.folderArrowAnimations[0]:
+							folderArrow.classList.replace(animations.folderArrowAnimations[0], animations.folderArrowAnimations[1]);
+							break;
+						case animations.folderArrowAnimations[1]:
+							folderArrow.classList.replace(animations.folderArrowAnimations[1], animations.folderArrowAnimations[0]);
+							break;
+					}
+
+					let folderContent = this.children['content'];
+					let folderContentAnimationClass = folderContent.classList[1];
+					switch(folderContentAnimationClass) {
+						case animations.folderContentAnimations[0]:
+							folderContent.classList.replace(animations.folderContentAnimations[0], animations.folderContentAnimations[1]);
+							break;
+						case animations.folderContentAnimations[1]:
+							folderContent.classList.replace(animations.folderContentAnimations[1], animations.folderContentAnimations[0]);
+							break;
+					}
+				}
+			}
+
+
+
+			let folders = [...document.body.children].filter(elmt => [...elmt.classList].includes('folder'));
+			const animations = {
+				folderArrowAnimations: ['folder-arrow-open-animation', 'folder-arrow-close-animation'],
+				folderContentAnimations: ['folder-content-open-animation', 'folder-content-close-animation']
+			};
+
+			for(let folder of folders) {
+				initFolder(folder);
+				folder.addEventListener('click', onFolderClick);
+			}
+		</script>
+	</body>
+</html>

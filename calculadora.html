@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang = 'pt-BR'>
+	<head>
+		<meta charset = 'utf-8' name = 'viewport' content = 'width = device-width, initial-scale = 1'>
+		<title>calculadora</title>
+	</head>
+	<body>
+		<script> // usar Uint8ClampedArray (MUITO MAIS RAPIDO, tamanho fixo, mas pratico de criar um com até 1000000 elementos em menos de 1s)
+			function greaterThan(x, y) {
+				var digits_x = x.indexOf('.');
+				if(digits_x == -1) {
+					digits_x = x.length;
+				}
+				var digits_y = y.indexOf('.');
+				if(digits_y == -1) {
+					digits_y = y.length;
+				}
+				if(digits_x == digits_y) {
+					for(var i = 0;i < Math.max(x.length, y.length);i++) {
+						if(typeof y[i] == 'undefined' && x[i] != 0 || (x[i] > y[i])) {
+							return true;
+						}
+						if(typeof x[i] == 'undefined' && y[i] != 0 || (y[i] > x[i])) {
+							return false;
+						}
+					}
+					return false;
+				} else {
+					return digits_x - digits_y > 0;
+				}
+			}
+			function add(x, y) {
+				if(x[0] == '-') {
+					if(y[0] == '-') {
+						return '-' + add(x.slice(1), y.slice(1));
+					}
+					return sub(y, x.slice(1));
+				}
+				if(y[0] == '-') {
+					return sub(x, y.slice(1));
+				}
+				var digits_x = x.indexOf('.');
+				if(digits_x == -1) {
+					digits_x = x.length;
+				}
+				var digits_y = y.indexOf('.');
+				if(digits_y == -1) {
+					digits_y = y.length;
+				}
+				if(digits_x > digits_y) {
+					y = '0'.repeat(digits_x - digits_y) + y;
+				} else {
+					x = '0'.repeat(digits_y - digits_x) + x;
+				}
+				if(digits_x != x.length || digits_y != x.length) {
+					var sum = x.length - digits_x > y.length - digits_y ? x.slice(y.length, x.length) : y.slice(x.length, y.length);
+				} else {
+					var sum = '';
+				}
+				var remainder = 0;
+				for(var i = Math.min(x.length, y.length) - 1;i >= 0;i--) {
+					if(x[i] == '.') {
+						sum = '.' + sum;
+						continue;
+					}
+					var digit_sum = Number(x[i]) + Number(y[i]) + remainder;
+					remainder = digit_sum >= 10 ? 1 : 0;
+					sum = digit_sum % 10 + sum;
+				}
+				var result = remainder + sum;
+				if(result[0] == '0') {
+					result = result.slice((result.match(/0(?!0)/) || {index: -1}).index + 1);
+				}
+				if(result[0] == '.') {
+					result = '0' + result;
+				}
+				return result;
+			}
+			function sub(x, y) {
+				if(x[0] == '-') {
+					if(y[0] == '-') {
+						return sub(y.slice(1), x.slice(1));
+					}
+					return '-' + add(x.slice(1), y);
+				}
+				if(y[0] == '-') {
+					return add(x, y.slice(1));
+				}
+				if(greaterThan(y, x)) {
+					return '-' + sub(y, x);
+				}
+				var digits_x = Math.min(x.length - x.indexOf('.'), x.length);
+				var digits_y = Math.min(y.length - y.indexOf('.'), y.length);
+				if(digits_x > digits_y) {
+					y += (!y.includes('.') ? '.' : '') + '0'.repeat(digits_x - digits_y);
+				} else {
+					x += (!y.includes('.') ? '.' : '') + '0'.repeat(digits_y - digits_x);
+				}
+				var inv_x = '';
+				var inv_y = '';
+				for(var i = Math.max(x.length, y.length);i >= 0;i--) {
+					inv_x += x[i] || '';
+					inv_y += y[i] || '';
+				}
+				var result = '';
+				var remainder = 0;
+				for(var i = 0;i < Math.max(x.length, y.length);i++) {
+					var xi = Number(inv_x[i]);
+					var yi = Number(inv_y[i] || 0);
+					if(isNaN(xi)) {
+						result = '.' + result;
+						continue;
+					}
+					if(xi - remainder < yi) {
+						result = 10 + xi - yi - remainder + result;
+						remainder = 1;
+					} else {
+						result = xi - yi - remainder + result;
+						remainder = 0;
+					}
+				}
+				if(result[0] == '0') {
+					result = result.slice((result.match(/0(?!0)/) || {index: -1}).index + 1);
+				}
+				if(result[0] == '.') {
+					result = '0' + result;
+				}
+				return result;
+			}
+			function mult(x, y) { // PRECISA melhorar a eficiencia disso, um bom candidato é Uint8ClampedArray
+				if(x[0] == '-') {
+					if(y[0] == '-') {
+						return mult(x, y);
+					}
+					return '-' + mult(x.slice(1), y);
+				}
+				if(y[0] == '-') {
+					return '-' + mult(x, y.slice(1));
+				}
+				var index_x = x.indexOf('.');
+				var index_y = y.indexOf('.');
+				var digits_x = Math.min(x.length - index_x - 1, x.length);
+				var digits_y = Math.min(y.length - index_y - 1, y.length);
+				var digits_total = digits_x + digits_y;
+				if(index_x != -1) {
+					x = x.slice(0, index_x) + x.slice(index_x + 1, x.length);
+				}
+				if(index_y != -1) {
+					y = y.slice(0, index_y) + y.slice(index_y + 1, y.length);
+				}
+				// console.log(digits_x, digits_y)
+				var total = '0';
+				for(var i = x.length - 1;i >= 0;i--) {
+					var mult = '0'.repeat(x.length - i - 1);
+					for(var j = y.length - 1;j >= 0;j--) {
+						mult = add(x[i] * y[j] + '0'.repeat(x.length + y.length - i - j - 2), mult);
+					}
+					total = add(total, mult);
+				}
+				// console.log(total.length, digits_total, digits_x, digits_y);
+				// return total.slice(0, total.length - digits_total) + '.' + total.slice(total.length - digits_total, total.length);
+				return total;
+			}
+		</script>
+	</body>
+</html>

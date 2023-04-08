@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset = 'utf-8'>
+		<title>simulacao fluido com box2dweb</title>
+		<style>
+			body {
+				margin: 0px;
+				overflow: hidden;
+			}
+		</style>
+		<script src = 'Box2d.min.js'></script>
+	</head>
+	<body>
+		<canvas id = 'canvas'></canvas>
+		<script>
+			function criar_retangulo(x, y, largura, altura) {
+				bodyDef.type = b2Body.b2_staticBody;
+				bodyDef.position.Set(x, y)
+				fixDef.shape = new b2PolygonShape;
+				fixDef.shape.SetAsBox(largura / 2, altura / 2);
+
+				return mundo.CreateBody(bodyDef).CreateFixture(fixDef);
+			}
+			function criar_bola(x, y, r) {
+				bodyDef.type = b2Body.b2_dynamicBody;
+				bodyDef.position.Set(x, y)
+				fixDef.density = 1;
+				fixDef.friction = 0;
+				fixDef.restitution = 0;
+				fixDef.shape = new b2CircleShape(r);
+				return mundo.CreateBody(bodyDef).CreateFixture(fixDef);
+			}
+			var canvas = document.getElementById('canvas');
+			var pincel = canvas.getContext('2d');
+			var largura_canvas = window.innerWidth;
+			var altura_canvas = window.innerHeight;
+			canvas.width = largura_canvas;
+			canvas.height = altura_canvas;
+
+			var b2Vec2 = Box2D.Common.Math.b2Vec2;
+			var b2BodyDef = Box2D.Dynamics.b2BodyDef;
+			var b2Body = Box2D.Dynamics.b2Body;
+			var b2FixtureDef = Box2D.Dynamics.b2FixtureDef;
+			var b2Fixture = Box2D.Dynamics.b2Fixture;
+			var b2World = Box2D.Dynamics.b2World;
+			var b2MassData = Box2D.Collision.Shapes.b2MassData;
+			var b2PolygonShape = Box2D.Collision.Shapes.b2PolygonShape;
+			var b2CircleShape = Box2D.Collision.Shapes.b2CircleShape;
+			var b2DebugDraw = Box2D.Dynamics.b2DebugDraw;
+
+			var escala = 30;
+			var largura = largura_canvas / escala;
+			var altura = altura_canvas / escala;
+
+			var mundo = new b2World(new b2Vec2(0, 9.80665), true);
+			var bodyDef = new b2BodyDef;
+			var fixDef = new b2FixtureDef;
+
+			var paredes = [];
+			paredes.push(criar_retangulo(0, altura / 2, 1, altura));
+			paredes.push(criar_retangulo(largura, altura / 2, 1, altura));
+			paredes.push(criar_retangulo(largura / 2, 0, largura, 1));
+			paredes.push(criar_retangulo(largura / 2, altura, largura, 1));
+
+			var bolas = [];
+			for(var i = 1.1;i < 1.1 + 0.3 * 25;i += 0.3) {
+				for(var j = 1.1;j < altura - 1.1;j += 0.3) {
+					bolas.push(criar_bola(i + Math.random() * 0.001, j + Math.random() * 0.001, 0.1));
+				}
+			}
+			console.log(mundo, bolas[0]);
+			function renderizar() {
+				mundo.Step(1 / 60, 10, 10);
+				pincel.clearRect(0, 0, largura_canvas, altura_canvas);
+				pincel.fillStyle = 'cyan';
+				pincel.strokeStyle = 'blue';
+				for(var bola of bolas) {
+					var pos = bola.m_body.m_xf.position;
+					var r = bola.m_shape.m_radius;
+					pincel.beginPath();
+					pincel.arc(pos.x * escala, pos.y * escala, r * escala, 0, 2 * Math.PI);
+					pincel.fill();
+					pincel.stroke();
+				}
+				pincel.fillStyle = 'grey';
+				for(var parede of paredes) {
+					var vertices = parede.m_shape.m_vertices;
+					var pos = parede.m_body.m_xf.position;
+					pincel.beginPath();
+					pincel.moveTo((vertices[0].x + pos.x) * escala, (vertices[0].y + pos.y) * escala);
+					for(var i = 1;i < vertices.length;i++) {
+						pincel.lineTo((vertices[i].x + pos.x) * escala, (vertices[i].y + pos.y) * escala);
+					}
+					pincel.fill();
+				}
+				mundo.ClearForces();     //     depois testar se é necessario
+
+				requestAnimationFrame(renderizar);
+			}
+			requestAnimationFrame(renderizar);
+		</script>
+	</body>
+</html>

@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang = 'pt-BR'>
+	<head>
+		<meta charset = 'utf-8' name = 'viewport' content = 'width = device-width, initial-scale = 1'>
+		<title>mouse heatmap</title>
+		<style>
+			body {
+				margin: 0px;
+				overflow: hidden;
+			}
+		</style>
+	</head>
+	<body>
+		<canvas id = 'canvas' style = 'background-color: #000;'></canvas>
+		<script>
+			var canvas = document.getElementById('canvas');
+			var pincel = canvas.getContext('2d');
+			var largura = window.innerWidth;
+			var altura = window.innerHeight;
+			canvas.width = largura;
+			canvas.height = altura;
+			var img_data = pincel.createImageData(largura, altura);
+			var data = img_data.data;
+			for(var i = 2;i < data.length;i += 4) {
+				data[i] = 255;
+				data[i + 1] = 255;
+			}
+			window.onresize = function() {
+				largura = window.innerWidth;
+				altura = window.innerHeight;
+				// img_data = pincel.getImageData(0, 0, canvas.width, canvas.height);
+				canvas.width = largura;
+				canvas.height = altura;
+				pincel.putImageData(img_data, 0, 0);
+				img_data = pincel.getImageData(0, 0, canvas.width, canvas.height);
+				data = img_data.data;
+				for(var i = 0;i < data.length;i += 4) {
+					if(data[i + 2] == 0 && data[i] == 0) {
+						data[i + 2] = 255;
+						data[i + 3] = 255;
+					}
+				}
+			}
+			var agora = Date.now();
+			var event = new MouseEvent('mousemove');
+			function renderizar() {
+				var new_data = new Uint8ClampedArray(data);
+				var lado = 10;
+				for(var i = -lado;i <= lado;i++) {
+					for(var j = -lado;j <= lado;j++) {
+						var index = 4 * (event.clientX + i + largura * (event.clientY + j));
+						var dist = Math.hypot(i, j);
+						var cor = -255 * dist / lado + 255;
+						new_data[index] += Math.max(cor / 10, 0);
+						new_data[index + 2] -= Math.max(cor / 10, 0);
+					}
+				}
+				for(var i = -lado;i <= lado;i++) {
+					for(var j = -lado;j <= lado;j++) {
+						var index = 4 * (event.clientX + i + largura * (event.clientY + j));
+						data[index] = new_data[index];
+						data[index + 2] = new_data[index + 2];
+					}
+				}
+				var dt = (Date.now() - agora) / 1000;
+				agora = Date.now();
+				if(dt < 0.1) {
+					pincel.clearRect(0, 0, largura, altura);
+					pincel.putImageData(img_data, 0, 0);
+				}
+				requestAnimationFrame(renderizar);
+			}
+			requestAnimationFrame(renderizar);
+			document.onmousemove = function(e) {
+				event = e;
+			}
+		</script>
+	</body>
+</html>

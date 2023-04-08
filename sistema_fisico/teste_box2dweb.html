@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset = 'utf-8'>
+		<title>Box2Dweb</title>
+		<style>
+			body {
+				margin: 0px;
+				overflow: hidden;
+			}
+		</style>
+		<script src = 'Box2d.min.js'></script>
+	</head>
+	<body>
+		<canvas id = 'canvas'></canvas>
+		<script>
+			function criar_retangulo(x, y, largura, altura) {
+				bodyDef.type = b2Body.b2_staticBody;
+				bodyDef.position.Set(x, y)
+				fixDef.shape = new b2PolygonShape;
+				fixDef.shape.SetAsBox(largura / 2, altura / 2);
+
+				return mundo.CreateBody(bodyDef).CreateFixture(fixDef);
+			}
+			var canvas = document.getElementById('canvas');
+			var pincel = canvas.getContext('2d');
+			var largura_canvas = window.innerWidth;
+			var altura_canvas = window.innerHeight;
+			canvas.width = largura_canvas;
+			canvas.height = altura_canvas;
+
+			var b2Vec2 = Box2D.Common.Math.b2Vec2;
+			var b2BodyDef = Box2D.Dynamics.b2BodyDef;
+			var b2Body = Box2D.Dynamics.b2Body;
+			var b2FixtureDef = Box2D.Dynamics.b2FixtureDef;
+			var b2Fixture = Box2D.Dynamics.b2Fixture;
+			var b2World = Box2D.Dynamics.b2World;
+			var b2MassData = Box2D.Collision.Shapes.b2MassData;
+			var b2PolygonShape = Box2D.Collision.Shapes.b2PolygonShape;
+			var b2CircleShape = Box2D.Collision.Shapes.b2CircleShape;
+			var b2DebugDraw = Box2D.Dynamics.b2DebugDraw;
+
+			var escala = 30;
+			var largura = largura_canvas / escala;
+			var altura = altura_canvas / escala;
+
+			var mundo = new b2World(new b2Vec2(0, 9.80665), true);
+			var bodyDef = new b2BodyDef;
+			var fixDef = new b2FixtureDef;
+
+			var paredes = [];
+			paredes.push(criar_retangulo(0, altura / 2, 1, altura));
+			paredes.push(criar_retangulo(largura, altura / 2, 1, altura));
+			paredes.push(criar_retangulo(largura / 2, 0, largura, 1));
+			paredes.push(criar_retangulo(largura / 2, altura / 4, largura / 2, 1));
+			paredes.push(criar_retangulo(largura / 6, 2 * altura / 4, largura / 3, 1));
+			paredes.push(criar_retangulo(5 * largura / 6, altura / 2, largura / 3, 1));
+			paredes.push(criar_retangulo(largura / 2, 3 * altura / 4, largura / 2, 1));
+			paredes.push(criar_retangulo(largura / 6, altura, largura / 3, 1));
+			paredes.push(criar_retangulo(5 * largura / 6, altura, largura / 3, 1));
+
+			var bolas = [];
+
+			function renderizar() {
+				mundo.Step(1 / 60, 10, 10);
+				pincel.clearRect(0, 0, largura_canvas, altura_canvas);
+				pincel.fillStyle = 'blue';
+				for(var bola of bolas) {
+					var pos = bola.m_body.m_xf.position;
+					var r = bola.m_shape.m_radius;
+					pincel.beginPath();
+					pincel.arc(pos.x * escala, pos.y * escala, r * escala, 0, 2 * Math.PI);
+					pincel.fill();
+				}
+				pincel.fillStyle = 'red';
+				for(var parede of paredes) {
+					var vertices = parede.m_shape.m_vertices;
+					var pos = parede.m_body.m_xf.position;
+					pincel.beginPath();
+					pincel.moveTo((vertices[0].x + pos.x) * escala, (vertices[0].y + pos.y) * escala);
+					for(var i = 1;i < vertices.length;i++) {
+						pincel.lineTo((vertices[i].x + pos.x) * escala, (vertices[i].y + pos.y) * escala);
+					}
+					pincel.fill();
+				}
+				mundo.ClearForces();
+				for(var i = bolas.length - 1;i >= 0;i--) {
+					if(bolas[i].m_body.m_xf.position.y > altura + bola.m_shape.m_radius) {
+						mundo.DestroyBody(bolas[i].m_body);
+						bolas.splice(i, 1);
+					}
+				}
+
+				var r = (Math.random() + 1) * largura / 200;
+				// var r = largura / 200;
+				bodyDef.type = b2Body.b2_dynamicBody;
+				bodyDef.position.Set(largura / 2, 1);
+				fixDef.density = 1;
+				fixDef.friction = 0;
+				fixDef.restitution = 0;
+				fixDef.shape = new b2CircleShape(r);
+				if(Math.random() < 0.2) {
+					bolas.push(mundo.CreateBody(bodyDef).CreateFixture(fixDef));
+				}
+				requestAnimationFrame(renderizar);
+			}
+			requestAnimationFrame(renderizar);
+		</script>
+	</body>
+</html>

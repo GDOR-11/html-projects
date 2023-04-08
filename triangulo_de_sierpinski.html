@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset = 'UTF-8'>
+		<title>triângulo de sierpinski</title>
+		<style>
+			body {
+				margin: 0px;
+				overflow: hidden;
+			}
+		</style>
+	</head>
+	<body>
+		<canvas id = 'canvas'></canvas>
+		<script>
+			class Triangulo {
+				constructor(x, y, lado) {
+					this.x = x;
+					this.y = y;
+					this.lado = lado;
+				}
+				desenhar() {
+					pincel.fillStyle = 'black';
+					pincel.beginPath();
+					pincel.moveTo(this.x, this.y);
+					pincel.lineTo(this.x + this.lado / 2, this.y + Math.sqrt(3 * this.lado * this.lado / 4));
+					pincel.lineTo(this.x - this.lado / 2, this.y + Math.sqrt(3 * this.lado * this.lado / 4));
+					pincel.lineTo(this.x, this.y);
+					pincel.fill();
+				}
+				particionar(triangulos) {
+					triangulos.push(new Triangulo(this.x, this.y, this.lado / 2));
+					triangulos.push(new Triangulo(this.x - this.lado / 4, this.y + Math.sqrt(3 * this.lado * this.lado / 16), this.lado / 2));
+					triangulos.push(new Triangulo(this.x + this.lado / 4, this.y + Math.sqrt(3 * this.lado * this.lado / 16), this.lado / 2));
+					triangulos.splice(triangulos.indexOf(this), 1);
+				}
+			}
+			function esperar(milissegundos) {
+				return new Promise(resolve => setTimeout(resolve, milissegundos));
+			}
+			var canvas = document.getElementById('canvas');
+			var pincel = canvas.getContext('2d');
+			var largura = window.innerWidth;
+			var altura = window.innerHeight;
+			canvas.width = largura;
+			canvas.height = altura;
+			window.onresize = function() {
+				largura = window.innerWidth;
+				altura = window.innerHeight;
+				canvas.width = largura;
+				canvas.height = altura;
+			}
+			var triangulos = [new Triangulo(largura / 2, 0, Math.sqrt(4 * altura ** 2 / 3))];
+			(async function() {
+				while(true) {
+					pincel.clearRect(0, 0, largura, altura);
+					for(var i = 0, l = triangulos.length;i < l;i++) {
+						if(i % 10 == 0) {
+							await esperar(1);
+						}
+						triangulos[0].desenhar();
+						triangulos[0].particionar(triangulos);
+					}
+					await esperar(3000);
+				}
+			})();
+		</script>
+	</body>
+</html>

@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang = 'pt-BR'>
+	<head>
+		<meta charset = 'utf-8' name = 'viewport' content = 'width = device-width, initial-scale = 1'>
+		<title>TSP</title>
+		<style>
+			body {
+				margin: 0px;
+				overflow: hidden;
+			}
+		</style>
+	</head>
+	<body>
+		<canvas id = 'canvas' style = 'background-color: #000;'></canvas>
+		<script>
+			function calcula_comprimento(ordem) {
+				var comprimento = 0;
+				for(var i = 0;i < ordem.length - 1;i++) {
+					comprimento += distancia[ordem[i]][ordem[i + 1]];
+				}
+				return comprimento;
+			}
+			function D(S, c) {
+				console.log(S)
+				if(S == [c]) {
+					return distancia[0][c];
+				}
+				var min = Infinity;
+				var S_sub_c = S;
+				S_sub_c.splice(S.indexOf(c), 1);
+				for(var x of S_sub_c) {
+					var val = D(S_sub_c, x) + distancia[x][c];
+					console.log(S, S_sub_c);
+					if(val < min) {
+						min = val;
+					}
+				}
+				return min;
+			}
+			function desenhar(desenhar_tentativa_atual) {
+				pincel.clearRect(0, 0, largura, altura);
+				pincel.lineJoin = 'miter';
+				pincel.strokeStyle = 'blue';
+				pincel.lineWidth = 2;
+				pincel.beginPath();
+				pincel.moveTo(cidades[ordem_recorde[0]].x, cidades[ordem_recorde[0]].y);
+				for(var index of ordem_recorde) {
+					pincel.lineTo(cidades[index].x, cidades[index].y);
+				}
+				pincel.stroke();
+				if(desenhar_tentativa_atual) {
+					pincel.strokeStyle = 'grey';
+					pincel.lineWidth = 1;
+					pincel.beginPath();
+					pincel.moveTo(cidades[ordem_atual[0]].x, cidades[ordem_atual[0]].y);
+					for(var index of ordem_atual) {
+						pincel.lineTo(cidades[index].x, cidades[index].y);
+					}
+					pincel.stroke();
+				}
+				pincel.strokeStyle = 'yellow';
+				pincel.lineJoin = 'round';
+				pincel.lineWidth = 5;
+				for(var cidade of cidades) {
+					pincel.strokeRect(cidade.x, cidade.y, 1, 1);
+				}
+			}
+			var canvas = document.getElementById('canvas');
+			var pincel = canvas.getContext('2d');
+			var largura = window.innerWidth;
+			var altura = window.innerHeight;
+			canvas.width = largura;
+			canvas.height = altura;
+			window.onresize = function() {
+				largura = window.innerWidth;
+				altura = window.innerHeight;
+				canvas.width = largura;
+				canvas.height = altura;
+				desenhar(!acabou);
+			}
+
+			var quantidade_cidades = 5;
+			var cidades = [...Array(quantidade_cidades)].map(function() {
+				return {
+					x: Math.random() * largura,
+					y: Math.random() * altura
+				}
+			});
+			var distancia = [...Array(quantidade_cidades)].map(() => []);
+			for(var i = 0;i < quantidade_cidades;i++) {
+				for(var j = 0;j < quantidade_cidades;j++) {
+					var dx = cidades[i].x - cidades[j].x;
+					var dy = cidades[i].y - cidades[j].y;
+					distancia[i].push(Math.hypot(dx, dy));
+				}
+			}
+			var ordem_atual = [...Array(quantidade_cidades - 1).keys()].map(n => n + 1);
+			console.log(ordem_atual)
+			var ordem_recorde = ordem_atual.slice(0);
+			desenhar(true);
+			// var ordens_tentadas = 0;
+			// var acabou = false;
+			// desenhar(false);
+			// await new Promise(r => setTimeout(r, 3000));
+			// await possibilidades(ordem);
+			// desenhar(false);
+			// acabou = true;
+		</script>
+	</body>
+</html>

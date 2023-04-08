@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang = 'pt-BR'>
+	<head>
+		<meta charset = 'utf-8' name = 'viewport' content = 'width = device-width, initial-scale = 1'>
+		<meta http-equiv = 'X-UA-Compatible' content = 'ie = edge'>
+		<title>simon</title>
+		<style>
+			:root {
+				--spacing: 2.5%;
+				--size: calc(50% - 2 * var(--spacing));
+			}
+			body {
+				margin: 0px;
+				overflow: hidden;
+			}
+			p.center {
+				position: absolute;
+				top: 50%;
+				left: 50%;
+				transform: translate(-50%, -150%);
+			}
+			p.white {
+				color: #ffffff;
+			}
+			p.big {
+				font-size: 1000%;
+			}
+			.fullscreen {
+				position: absolute;
+				width: 100%;
+				height: 100%;
+			}
+			.tile {
+				position: absolute;
+				width: var(--size);
+				height: var(--size);
+			}
+			.top {
+				top: var(--spacing);
+			}
+			.bottom {
+				bottom: var(--spacing);
+			}
+			.left {
+				left: var(--spacing);
+			}
+			.right {
+				right: var(--spacing);
+			}
+			.black {
+				background-color: #000000;
+			}
+			.transparent-black {
+				background-color: #00000080;
+			}
+			.dark-yellow {
+				background-color: #c0c000;
+			}
+			.dark-blue {
+				background-color: #0000c0;
+			}
+			.dark-red {
+				background-color: #c00000;
+			}
+			.dark-green {
+				background-color: #00c000;
+			}
+			.yellow {
+				background-color: #ffff00;
+			}
+			.blue {
+				background-color: #0000ff;
+			}
+			.red {
+				background-color: #ff0000;
+			}
+			.green {
+				background-color: #00ff00;
+			}
+		</style>
+	</head>
+	<body>
+		<div class = 'fullscreen black'>
+			<div class = 'tile top left dark-yellow' id = 'tile 1' ondragstart = 'return false;'></div>
+			<div class = 'tile top right dark-blue' id = 'tile 2' ondragstart = 'return false;'></div>
+			<div class = 'tile bottom left dark-red' id = 'tile 3' ondragstart = 'return false;'></div>
+			<div class = 'tile bottom right dark-green' id = 'tile 4' ondragstart = 'return false;'></div>
+		</div>
+		<div id = 'game-over' class = 'fullscreen transparent-black' hidden = true>
+			<p class = 'big center white'>game over</p>
+		</div>
+		<script>
+			class Tile {
+				constructor(domElement, index) {
+					this.domElement = domElement;
+					this.index = index;
+					this.on = false;
+					var tile = this;
+					this.domElement.addEventListener('mousedown', function(event) {
+						if(esperando_input_usuario) {
+							tile.turn_on();
+						}
+					}, passive);
+					this.domElement.addEventListener('mousedown', function(event) {
+						if(esperando_input_usuario) {
+							processar_movimento_usuario(tile.index);
+						}
+					}, passive);
+					window.addEventListener('mouseup', e =>	tile.turn_off(), passive);
+				}
+				turn_on() {
+					if(!this.on) {
+						this.on = true;
+						this.domElement.className = this.domElement.className.replace('dark-', '');
+					}
+				}
+				turn_off() {
+					if(this.on) {
+						this.on = false;
+						var color_class_index = get_color_class_index(this.domElement);
+						this.domElement.className = insertString(this.domElement.className, 'dark-', color_class_index);
+					}
+				}
+			}
+			function animar_movimentos() {
+				var frameCount = 0;
+				var animacao = setInterval(function() {
+					var index = frameCount >> 1;
+					if(Math.ceil(frameCount / 2) > movimentos.length - 1) {
+						clearInterval(animacao);
+						esperando_input_usuario = true;
+					}
+					if(frameCount++ % 2 == 0) {
+						tiles[movimentos[index]].turn_on();
+					} else {
+						tiles[movimentos[index]].turn_off();
+					}
+				}, 500);
+			}
+			async function processar_movimento_usuario(movimento) {
+				if(movimentos[movimentos_feitos_pelo_usuario] == movimento) {
+					if(movimentos_feitos_pelo_usuario++ == movimentos.length - 1) {
+						movimentos.push(Math.floor(Math.random() * 4));
+						movimentos_feitos_pelo_usuario = 0;
+						animar_movimentos();
+						esperando_input_usuario = false;
+					}
+				} else {
+					document.getElementById('game-over').hidden = false;
+					esperando_input_usuario = false;
+				}
+			}
+			function get_color_class_index(elmt) {
+				var colors = /yellow|blue|red|green/;
+				var classes = elmt.className;
+				return classes.search(colors);
+			}
+			function insertString(original_str, new_str, index) {
+				return original_str.substr(0, index) + new_str + original_str.substr(index);
+			}
+			var passive = false;
+			try {
+				window.addEventListener('event-listener', null, Object.defineProperty({}, 'passive', {get: () => passive = {passive: true}}));
+			} catch(error) {}
+
+			var tiles = [];
+			for(var i = 1;i <= 4;i++) {
+				var tile = new Tile(document.getElementById('tile ' + i), i - 1);
+				tiles.push(tile);
+			}
+
+			var movimentos = [Math.floor(Math.random() * 4)];
+			var movimentos_feitos_pelo_usuario = 0;
+			var esperando_input_usuario = false;
+			animar_movimentos();
+		</script>
+	</body>
+</html>

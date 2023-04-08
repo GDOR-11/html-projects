@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang = 'pt-BR'>
+	<head>
+		<meta charset = 'utf-8' name = 'viewport' content = 'width = device-width, initial-scale = 1'>
+		<title>simulacao fluido</title>
+		<style>
+			body {
+				margin: 0px;
+				overflow: hidden;
+			}
+		</style>
+	</head>
+	<body>
+		<canvas id = 'canvas' style = 'background-color: #000;'></canvas>
+		<script>
+			function IX_21(x, y) {
+				x = Math.min(Math.max(x, 0), largura);
+				y = Math.min(Math.max(y, 0), altura);
+				return Math.round(x) + largura * Math.round(y);
+			}
+			function IX_12(i) {
+				return {x: i % largura, y: i / largura};
+				return Math.round(x) + largura * Math.round(y);
+			}
+			class Particula {
+				constructor(x, y) {
+					this.x = x;
+					this.y = y;
+				}
+				desenhar(flow_field) {
+					var index = 4 * IX_21(this.x, this.y);
+					var v = Math.hypot(flow_field[index / 2], flow_field[index / 2 + 1]);
+					data[index] = 127;
+					data[index + 1] = 127;
+					data[index + 2] = 127;
+					data[index + 3] = 255;
+				}
+				atualizar(flow_field, dt) {
+					var index = 2 * IX_21(this.x, this.y);
+					this.x += flow_field[index] * dt;
+					this.y += flow_field[index + 1] * dt;
+					this.x = Math.min(Math.max(this.x, 0), largura - 1);
+					this.y = Math.min(Math.max(this.y, 0), altura - 1);
+				}
+			}
+			function advect(dt) {
+				var next = flow_field.slice();
+				for(var i = 0;i < flow_field.length;i += 2) {
+					var v = {x: flow_field[i], y: flow_field[i + 1]};
+					var pos = IX_12(i / 2);
+					var index = 2 * IX_21(pos.x + v.x * dt, pos.y + v.y * dt);
+					if(index > 0 && index < next.length) {
+						next[index] = v.x;
+						next[index + 1] = v.y;
+						if(next[index] != v.x) {
+							throw index + '     ' + next[index] + '   ' + v.x;
+						}
+					}
+				}
+				flow_field = next;
+			}
+			function dot(x, y) {
+				return x.x * y.x + x.y * y.y;
+			}
+			function remove_divergence() {
+				for(var iter = 0;iter < 10;iter++) {
+					for(var i = 0;i < flow_field.length;i += 2) {
+						var pos = IX_12(i / 2);
+						var x = pos.x;
+						var y = pos.y;
+						var f = flow_field;
+						var v1 = {
+							x: f[IX_21(x - 1, y - 1)] + f[IX_21(x + 1, y + 1)],
+							y: f[IX_21(x - 1, y - 1) + 1] + f[IX_21(x + 1, y + 1) + 1]
+						}
+						var v2 = {
+							x: f[IX_21(x - 1, y + 1)] + f[IX_21(x + 1, y - 1)],
+							y: f[IX_21(x - 1, y + 1) + 1] + f[IX_21(x + 1, y - 1) + 1]
+						}
+						f[i] = f[i] + (dot(f[IX_21(x - 1, y - 1)] + f[IX_21(x + 1, y + 1)], {x: 1, y: 1}) + dot(f[IX_21(x - 1, y + 1)] + f[IX_21(x + 1, y - 1)], {x: 1, y: -1}) + (f[IX_21(x - 1, y)] + f[IX_21(x + 1, y)] - f[IX_21(x, y - 1)] - f[IX_21(x, y + 1)]) * 2 - 4 * f[i]) / 8;
+						f[i + 1] = f[i + 1] + (dot(f[IX_21(x - 1, y - 1) + 1] + f[IX_21(x + 1, y + 1) + 1], {x: 1, y: 1}) + dot(f[IX_21(x - 1, y + 1) + 1] + f[IX_21(x + 1, y - 1) + 1], {x: 1, y: -1}) + (f[IX_21(x - 1, y) + 1] + f[IX_21(x + 1, y) + 1] - f[IX_21(x, y - 1) + 1] - f[IX_21(x, y + 1) + 1]) * 2 - 4 * f[i + 1]) / 8;
+					}
+				}
+				// f[x,y] = f[x,y] + (dot(f[x-1,y-1] + f[x+1,y+1], {1,1}) + dot(f[x-1,y+1] + f[x+1,y-1], {1,-1}) * {1,-1} + (f[x-1,y] + f[x+1,y] - f[x,y-1] - f[x,y+1]) * {2,-2} + f[x,y] * -4) / 8;
+			}
+			function resize() {
+				largura = window.innerWidth;
+				altura = window.innerHeight;
+				canvas.width = largura;
+				canvas.height = altura;
+				img_data = pincel.createImageData(largura, altura);
+				data = img_data.data;
+			}
+			var canvas = document.getElementById('canvas');
+			var pincel = canvas.getContext('2d');
+			resize();
+			window.onresize = resize;
+
+			var flow_field = new Int16Array(2 * largura * altura);
+
+			var particulas = [];
+			for(var i = 0;i < largura;i += 2) {
+				for(var j = 0;j < altura;j += 2) {
+					particulas.push(new Particula(i, j));
+				}
+			}
+
+			var dt = 1 / 60;
+			function renderizar() {
+				pincel.clearRect(0, 0, largura, altura);
+				for(var i = 0;i < data.length;i++) {
+					data[i] = 0;
+				}
+				for(var particula of particulas) {
+					particula.desenhar(flow_field);
+					particula.atualizar(flow_field, dt);
+				}
+				advect(dt);
+				pincel.putImageData(img_data, 0, 0);
+				requestAnimationFrame(renderizar);
+			}
+			requestAnimationFrame(renderizar);
+
+			var mouse_pressionado = false;
+			document.onmousedown = function(event) {
+				mouse_pressionado = true;
+			}
+			document.onmouseup = function(event) {
+				mouse_pressionado = false;
+			}
+			document.onmousemove = function(event) {
+				if(mouse_pressionado) {
+					for(var i = -10;i <= 10;i++) {
+						for(var j = -10;j <= 10;j++) {
+							var index = 2 * (event.clientX + i + largura * (event.clientY + j));
+							flow_field[index] = event.movementX * 25.5;
+							flow_field[index + 1] = event.movementY * 25.5;
+						}
+					}
+				}
+			}
+		</script>
+	</body>
+</html>

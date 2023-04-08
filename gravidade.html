@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>gravidade</title>
+		<style>
+			body {
+				margin: 0px;
+				overflow: hidden;
+			}
+		</style>
+	</head>
+	<body>
+		<canvas id = 'canvas'></canvas>
+		<script>
+			class Planeta {
+				constructor(x, y, vx, vy, m) {
+					// this.m = m || Math.random() * 90 + 10;
+					this.m = m || 100;
+					this.r = Math.sqrt(this.m) / 2;
+					this.x = x || Math.random() * largura - largura / 2;
+					this.y = y || Math.random() * altura - altura / 2;
+					var a = Math.random() * 2 * Math.PI;
+					this.vx = 500 * Math.cos(a);
+					this.vy = 500 * Math.sin(a);
+					this.cor = 'rgb(' + Math.random() * 255 + ', ' + Math.random() * 255 + ', ' + Math.random() * 255 + ')';
+				}
+				mover(planetas, dt) {
+					this.x += this.vx * dt;
+					this.y += this.vy * dt;
+					for(var planeta of planetas) {
+						var diffx = planeta.x - this.x;
+						var diffy = planeta.y - this.y;
+						var distsq = diffx * diffx + diffy * diffy;
+						var sr = this.r + planeta.r;
+						if(distsq < sr * sr && planeta != this) {
+							planetas.splice(planetas.indexOf(this), 1);
+							planeta.x = (planeta.x  * planeta.m + this.x * this.m) / (planeta.m + this.m);
+							planeta.y = (planeta.y  * planeta.m + this.y * this.m) / (planeta.m + this.m);
+							planeta.vx = (planeta.vx  * planeta.m + this.vx * this.m) / (planeta.m + this.m);
+							planeta.vy = (planeta.vy  * planeta.m + this.vy * this.m) / (planeta.m + this.m);
+							if(this.m > planeta.m) {
+								planeta.cor = this.cor;
+							}
+							planeta.m += this.m;
+							planeta.r = Math.sqrt(planeta.m) / 2;
+						}
+					}
+				}
+				atrair(planetas, dt) {
+					var x = this.x;
+					var y = this.y;
+					for(var i = planetas.length - 1;i >= 0;i--) {
+						if(planetas[i] != this) {
+							var diffx = planetas[i].x - this.x;
+							var diffy = planetas[i].y - this.y;
+							var distsq = diffx * diffx + diffy * diffy;
+							var acc = G * planetas[i].m / (distsq);
+							var dist = Math.sqrt(distsq);
+							var accx = acc * diffx / dist;
+							var accy = acc * diffy / dist;
+							this.vx += accx * dt;
+							this.vy += accy * dt;
+						}
+					}
+				}
+				// atrair(planetas, dt) {
+				// 	var x = this.x;
+				// 	var y = this.y;
+				// 	for(var i = planetas.length - 1;i >= 0;i--) {
+				// 		if(planetas[i] != this) {
+				// 			var diffx = planetas[i].x - this.x;
+				// 			var diffy = planetas[i].y - this.y;
+				// 			var dist = Math.hypot(diffx, diffy);
+				// 			var acc = G * planetas[i].m / (dist * dist); // edicao da lei da gravitacao universal para ser aplicada em aceleracao ao inves de forca
+				// 			var accx = acc * diffx / dist;
+				// 			var accy = acc * diffy / dist;
+				// 			var dt_restante = dt;
+				// 			while(dt_restante > 0) {
+				// 				var dt_ideal = Math.min(1 / acc, dt_restante);
+
+				// 				var diffx = planetas[i].x - x;
+				// 				var diffy = planetas[i].y - y;
+				// 				var dist = Math.hypot(diffx, diffy);
+				// 				var acc = G * planetas[i].m / (dist * dist); // edicao da lei da gravitacao universal para ser aplicada em aceleracao ao inves de forca
+				// 				var accx = acc * diffx / dist;
+				// 				var accy = acc * diffy / dist;
+				// 				this.vx += accx * dt_ideal;
+				// 				this.vy += accy * dt_ideal;
+				// 				x += this.vx * dt_ideal;
+				// 				y += this.vy * dt_ideal;
+				// 				dt_restante -= dt_ideal;
+				// 			}
+				// 		}
+				// 	}
+				// }
+				desenhar(planetas) {
+					pincel.fillStyle = this.cor;
+					pincel.beginPath();
+					pincel.arc((this.x - offsetx) / zoom + largura / 2, (this.y - offsety) / zoom + altura / 2, this.r / zoom, 0, 2 * Math.PI);
+					pincel.fill();
+				}
+			}
+			var canvas = document.getElementById('canvas');
+			var pincel = canvas.getContext('2d');
+			var largura = window.innerWidth;
+			var altura = window.innerHeight;
+			canvas.width = largura;
+			canvas.height = altura;
+			window.onresize = function() {
+				largura = window.innerWidth;
+				altura = window.innerHeight;
+				canvas.width = largura;
+				canvas.height = altura;
+			}
+			var planetas = [];
+			for(var i = 0;i < 50;i++) {
+				planetas.push(new Planeta());
+			}
+			var G = 100000;
+			var dt = 0.00001;
+			var offsetx = 0;
+			var offsety = 0;
+			var zoom = 1;
+			var agora = Date.now();
+			var dt;
+			function renderizar() {
+				dt = (Date.now() - agora) / 1000000;
+				agora = Date.now();
+				pincel.fillStyle = 'black';
+				pincel.fillRect(0, 0, largura, altura);
+				var delay = Date.now();
+				for(var i = 0;Date.now() - delay < 10 && i < 100;i++) {
+					for(var j = planetas.length - 1;j >= 0;j--) {
+						planetas[j].atrair(planetas, dt);
+						planetas[j].mover(planetas, dt);
+					}
+				}
+				for(planeta of planetas) {
+					planeta.desenhar(planetas);
+				}
+				requestAnimationFrame(renderizar);
+			}
+			requestAnimationFrame(renderizar);
+			var teclas_pressionadas = [];    //   tirar
+			var pos_mouse = {x: 0, y: 0};
+			var mouse_pressionado = false;
+			document.onmousedown = function(event) {
+				mouse_pressionado = true;
+			}
+			document.onmouseup = function(event) {
+				mouse_pressionado = false;
+			}
+			document.onmousemove = function(event) {
+				var ultima_pos_mouse = pos_mouse;
+				pos_mouse = {x: event.clientX, y: event.clientY};
+				if(mouse_pressionado) {
+					offsetx -= (pos_mouse.x - ultima_pos_mouse.x) * zoom;
+					offsety -= (pos_mouse.y - ultima_pos_mouse.y) * zoom;
+				}
+			}
+			document.onmousewheel = function(event) {
+				offsetx += (event.clientX - largura / 2) * zoom;
+				offsety += (event.clientY - altura / 2) * zoom;
+				if(event.deltaY > 0) {
+					zoom *= 1.05;
+				} else {
+					zoom /= 1.05;
+				}
+				offsetx -= (event.clientX - largura / 2) * zoom;
+				offsety -= (event.clientY - altura / 2) * zoom;
+			}
+		</script>
+	</body>
+</html>

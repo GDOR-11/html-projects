@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang = 'pt-BR'>
+	<head>
+		<meta charset = 'utf-8' name = 'viewport' content = 'width = device-width, initial-scale = 1'>
+		<title>esfera de fibonacci</title>
+		<style>
+			body {
+				margin: 0px;
+				overflow: hidden;
+			}
+		</style>
+		<script src = 'three.min.js'></script>
+		<script src = 'TrackBallControls.js'></script>
+		<script src = 'ConvexHull.js'></script>
+		<script src = 'ConvexGeometry.js'></script>
+	</head>
+	<body>
+		<canvas id = 'canvas'></canvas>
+		<input id = 'id' min = 4 max = 8192 value = 500 type = 'range' style = 'position: absolute;top: 0px;'>
+		<script>
+			function cm_para_pixels() {
+				var div = document.createElement('div');
+				div.style.width = '1cm';
+				document.body.append(div);
+				var resultado = div.clientWidth;
+				div.parentNode.removeChild(div);
+				return resultado;
+			}
+			function FOV(largura, altura) {
+				var pixels_para_cm = 1 / cm_para_pixels();
+				var largura_cm = largura * pixels_para_cm;
+				var altura_cm = altura * pixels_para_cm;
+
+				var aspecto = largura_cm / altura_cm;
+
+				var tamanho_diagonal = Math.hypot(largura_cm, altura_cm);
+
+				var distancia_tela = 30; // 30cm
+
+				var radianos = 2 * Math.atan(largura_cm / (2 * distancia_tela));
+				var graus = radianos * 180 / Math.PI;
+
+				return graus;
+			}
+			function esfera_de_fibonacci() {
+				cena.children = [];
+				pontos = [];
+				var vertices = [];
+				n = Number(document.getElementById('id').value);
+				for(var i = 0;i < n;i++) {
+					var theta = i * Math.PI * (1 + Math.sqrt(5));
+					var phi = Math.acos(1 - 2 * (i + 0.5) / n)
+					var ponto = new THREE.Mesh(geometria_ponto, material_ponto);
+					var x = raio_esfera * Math.sin(phi) * Math.cos(theta);
+					var y = raio_esfera * Math.sin(phi) * Math.sin(theta);
+					var z = -raio_esfera * Math.cos(phi);
+					vertices.push(new THREE.Vector3(x, y, z));
+					ponto.position.set(x, y, z);
+					cena.add(ponto);
+					pontos.push(ponto);
+				}
+				var geometria = new ConvexGeometry(vertices);
+				var mesh = new THREE.Mesh(geometria, material_esfera);
+				cena.add(mesh);
+			}
+			var raio_esfera = 100;
+			var raio_ponto = 1;
+
+			var renderizador = new THREE.WebGLRenderer({canvas: document.getElementById('canvas'), antialias: true});
+			renderizador.setSize(window.innerWidth, window.innerHeight);
+			document.body.append(renderizador.domElement);
+
+			var fov = FOV(window.innerWidth, window.innerHeight);
+			var aspecto = window.innerWidth / window.innerHeight;
+			var maximo_perto = 1;
+			var maximo_longe = 8.988465674311579e+307;
+			var camera = new THREE.PerspectiveCamera(fov, aspecto, maximo_perto, maximo_longe);
+
+			var controles = new TrackballControls(camera, renderizador.domElement);
+			camera.position.z = raio_esfera + 256;
+			controles.noPan = true;
+			controles.minDistance = raio_esfera + raio_ponto + maximo_perto;
+			controles.dynamicDampingFactor = 0.1;
+
+			var cena = new THREE.Scene();
+			cena.background = new THREE.Color(0xffffff);
+
+			var geometria_ponto = new THREE.SphereGeometry(raio_ponto, 8, 8);
+			var material_ponto = new THREE.MeshBasicMaterial({color: 0x000000, opacity: 0.1, transparent: true});
+			var material_esfera = new THREE.MeshNormalMaterial();
+			var pontos = [];
+
+			var n = 500;
+			function renderizar() {
+				var distancia_esfera = camera.position.length() - raio_esfera;
+				controles.rotateSpeed = distancia_esfera / 64;
+				controles.update();
+				material_ponto = new THREE.MeshBasicMaterial({color: 0x000000, opacity: 2048 / distancia_esfera, transparent: true});
+				for(var ponto of pontos) {
+					ponto.material = material_ponto;
+				}
+				renderizador.render(cena, camera);
+				requestAnimationFrame(renderizar);
+			}
+			esfera_de_fibonacci();
+			renderizar();
+
+
+			var passive = false;
+			try {
+				window.addEventListener('event-listener', null, Object.defineProperty({}, 'passive', {get: () => passive = {passive: true}}));
+			} catch(error) {}
+
+			var mouse_pressionado = false;
+			window.addEventListener('resize', function(e) {
+				renderizador.setSize(window.innerWidth, window.innerHeight);
+			}, passive);
+			document.getElementById('id').addEventListener('input', esfera_de_fibonacci, passive);
+		</script>
+	</body>
+</html>

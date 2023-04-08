@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang = 'pt-BR'>
+	<head>
+		<meta charset = 'utf-8' name = 'viewport' content = 'width = device-width, initial-scale = 1'>
+		<title>TSP</title>
+		<style>
+			body {
+				margin: 0px;
+				overflow: hidden;
+			}
+			canvas {
+				background-color: #000;
+			}
+		</style>
+	</head>
+	<body>
+		<canvas id = 'canvas'></canvas>
+		<script>
+			function two_opt_swap(ordem, i, k) {
+				return nova_ordem = ordem.slice(0, i).concat(ordem.slice(i, k + 1).reverse()).concat(ordem.slice(k + 1, quantidade_cidades));
+			}
+			function heuristica(ordem) {
+				var ordem_anterior = ordem.slice(0);
+				var comprimento = calcula_comprimento(ordem);
+				do {
+					ordem_anterior = ordem.slice(0);
+					for(var i = 0;i <= quantidade_cidades - 1;i++) {
+						for(var j = i + 1;j <= quantidade_cidades;j++) {
+							var nova_ordem = two_opt_swap(ordem, i, j);
+							nova_ordem.push(nova_ordem[0]);
+							novo_comprimento = calcula_comprimento(nova_ordem, ordem, comprimento);
+							if(novo_comprimento < comprimento) {
+								ordem = nova_ordem;
+								comprimento = novo_comprimento;
+							}
+						}
+					}
+				} while(ordem_anterior.join(',') != ordem.join(','));
+				return ordem;
+			}
+			function calcula_comprimento(ordem) {
+				var comprimento = 0;
+				for(var i = 0;i < ordem.length - 1;i++) {
+					comprimento += distancia[ordem[i]][ordem[i + 1]];
+				}
+				return comprimento;
+			}
+			function checar_ordem(ordem) {
+				var comprimento = 0;
+				for(var i = 0;i < ordem.length - 1;i++) {
+					comprimento += distancia[ordem[i]][ordem[i + 1]];
+					if(comprimento >= comprimento_ordem_recorde) {
+						return;
+					}
+				}
+				ordem_recorde = ordem.slice();
+				comprimento_ordem_recorde = comprimento;
+			}
+			async function possibilidades(array, ordem, comprimento) {
+				if(ordem == undefined) {
+					ordem = [];
+					comprimento = 0;
+				}
+				if(array.length == 0) {
+					ordem_atual = [0].concat(ordem).concat([0]);
+					checar_ordem(ordem_atual);
+					return;
+				}
+				if(ordens_tentadas++ % 10000 == 0) {
+					if(ordem.length == quantidade_cidades - 1) {
+						ordem_atual = [0].concat(ordem).concat([0]);
+					} else {
+						ordem_atual = [0].concat(ordem);
+					}
+					desenhar(true);
+					await new Promise(r => setTimeout(r, 0));
+				}
+				if(comprimento < comprimento_ordem_recorde) {
+					for(var index of cidades_mais_distantes[[0].concat(ordem)[ordem.length]]) {
+						if(array.includes(index) && !ordem.includes(index)) {
+							var arr = array.slice();
+							arr.splice(arr.indexOf(index), 1);
+							await possibilidades(arr, ordem.concat([index]), comprimento + distancia[([0].concat(ordem))[ordem.length]][index]);
+						}
+					}
+				}
+			}
+			function desenhar(desenhar_tentativa_atual) {
+				pincel.clearRect(0, 0, largura, altura);
+				pincel.lineJoin = 'miter';
+				pincel.strokeStyle = 'blue';
+				pincel.lineWidth = 2;
+				pincel.beginPath();
+				pincel.moveTo(cidades[ordem_recorde[0]].x, cidades[ordem_recorde[0]].y);
+				for(var index of ordem_recorde) {
+					pincel.lineTo(cidades[index].x, cidades[index].y);
+				}
+				pincel.stroke();
+				if(desenhar_tentativa_atual) {
+					pincel.strokeStyle = 'grey';
+					pincel.lineWidth = 1;
+					pincel.beginPath();
+					pincel.moveTo(cidades[ordem_atual[0]].x, cidades[ordem_atual[0]].y);
+					for(var index of ordem_atual) {
+						pincel.lineTo(cidades[index].x, cidades[index].y);
+					}
+					pincel.stroke();
+				}
+				pincel.strokeStyle = 'yellow';
+				pincel.lineJoin = 'round';
+				pincel.lineWidth = 5;
+				for(var cidade of cidades) {
+					pincel.strokeRect(cidade.x, cidade.y, 1, 1);
+				}
+			}
+			var canvas = document.getElementById('canvas');
+			var pincel = canvas.getContext('2d');
+			var largura = window.innerWidth;
+			var altura = window.innerHeight;
+			canvas.width = largura;
+			canvas.height = altura;
+			window.onresize = function() {
+				largura = window.innerWidth;
+				altura = window.innerHeight;
+				canvas.width = largura;
+				canvas.height = altura;
+				desenhar(!acabou);
+			}
+
+			var quantidade_cidades = 12;
+			var cidades = [...Array(quantidade_cidades)].map(function() {
+				return {
+					x: Math.random() * largura,
+					y: Math.random() * altura
+				}
+			});
+			var distancia = [...Array(quantidade_cidades)].map(() => []);
+			for(var i = 0;i < quantidade_cidades;i++) {
+				for(var j = 0;j < quantidade_cidades;j++) {
+					var dx = cidades[i].x - cidades[j].x;
+					var dy = cidades[i].y - cidades[j].y;
+					distancia[i].push(Math.hypot(dx, dy));
+				}
+			}
+			var cidades_mais_distantes = [];
+			for(var i = 0;i < quantidade_cidades;i++) {
+				var cidades_distantes = [];
+				var distancias = [];
+				for(var j = 0;j < quantidade_cidades;j++) {
+					if(i != j) {
+						for(var k = 0;distancia[i][j] < distancias[k];k++);
+						cidades_distantes.splice(k, 0, j);
+						distancias.splice(k, 0, distancia[i][j]);
+					}
+				}
+				cidades_mais_distantes.push(cidades_distantes);
+			}
+			var ordem_recorde = heuristica([...Array(quantidade_cidades).keys()]);
+			var comprimento_ordem_recorde = calcula_comprimento(ordem_recorde);
+			var ordem_atual = ordem_recorde;
+			var ordens_tentadas = 0;
+			var acabou = false;
+			var ordem = [...Array(quantidade_cidades).keys()];
+			(async function() {
+				desenhar(false);
+				await new Promise(r => setTimeout(r, 3000));
+				await possibilidades(ordem);
+				desenhar(false);
+				acabou = true;
+			})();
+		</script>
+	</body>
+</html>

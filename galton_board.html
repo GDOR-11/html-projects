@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>galton board</title>
+		<style>
+			body {
+				margin: 0px;
+				overflow: hidden;
+			}
+		</style>
+	</head>
+	<body>
+		<canvas id = 'canvas2'></canvas>
+		<canvas id = 'canvas' style = 'position: absolute;top: 0px;left: 0px;'></canvas>
+		<script>
+			class Bola {
+				static velocidade = 0.5;
+				static r = 3;
+				constructor() {
+					this.x = largura / 2;
+					this.y = Bola.r;
+					this.dir = Math.random() >= 0.5 ? Bola.velocidade : -Bola.velocidade;
+				}
+				desenhar() {
+					pincel.fillStyle = 'blue';
+					pincel.strokeStyle = 'cyan';
+					pincel.lineWidth = 1.5;
+					pincel.beginPath();
+					pincel.arc(this.x, this.y, Bola.r, 0, 2 * Math.PI);
+					pincel.fill();
+					pincel.stroke();
+				}
+				cair() {
+					this.x += this.dir;
+					this.y += Bola.velocidade;
+				}
+				atualizarDirecao() {
+					this.dir = Math.random() >= 0.5 ? Bola.velocidade : -Bola.velocidade;
+				}
+			}
+			var canvas = document.getElementById('canvas');
+			var canvas2 = document.getElementById('canvas2');
+			var largura = window.innerWidth;
+			var altura = window.innerHeight;
+			canvas.width = canvas2.width = largura;
+			canvas.height = canvas2.height = altura;
+			var pincel = canvas.getContext('2d');
+			var pincel2 = canvas2.getContext('2d');
+			var quantidade_pinos = 200;
+			var bolas = [];
+			var pinos = [];
+			var contador = [[],[]];
+			for(var i = -quantidade_pinos;i <= quantidade_pinos;i += 2) {
+				contador[0].push(i * 500 / quantidade_pinos + largura / 2);
+				contador[1].push(0);
+			}
+			for(var i = 0;i < quantidade_pinos;i++) {
+				for(var j = -i;j <= i;j += 2) {
+					pinos.push([j * 500 / quantidade_pinos + largura / 2, i * 500 / quantidade_pinos + 2 * Bola.r]);
+				}
+			}
+			pincel2.fillStyle = 'grey';
+			for(var pino of pinos) {
+				pincel2.beginPath();
+				pincel2.arc(pino[0], pino[1], 1, 0, 2 * Math.PI);
+				pincel2.fill();
+			}
+			var frameCount = 0;
+			setInterval(function() {
+				pincel.clearRect(0, 0, largura, altura);
+				for(var k = 0;k < 100;k++) {
+					var atualizar_direcao = false;;
+					if(frameCount % (500 / quantidade_pinos / Bola.velocidade) == 0) {
+						bolas.push(new Bola());
+						atualizar_direcao = true;
+					}
+					for(var i = bolas.length - 1;i >= 0;i--) {
+						if(atualizar_direcao) {
+							bolas[i].atualizarDirecao();
+						}
+						bolas[i].cair();
+						if(bolas[i].y > 510) {
+							for(var j = contador[0].length - 1;contador[0][j] - 500 / quantidade_pinos >= bolas[i].x;j--);
+							contador[1][j]++;
+							bolas.splice(i, 1);
+						}
+					}
+					frameCount++;
+				}
+				for(var bola of bolas) {
+					bola.desenhar();
+				}
+				var max = 0;
+				for(var valor of contador[1]) {
+					if(valor > max) {
+						max = valor;
+					}
+				}
+				pincel.fillStyle = 'grey';
+				for(var i = 0;i < contador[0].length;i++) {
+					pincel.fillRect(contador[0][i] - 500 / quantidade_pinos / 2, altura - (altura - 510) / (max / contador[1][i]), 500 / quantidade_pinos,  (altura - 500) / (max / contador[1][i]));
+				}
+			}, 1);
+		</script>
+	</body>
+</html>

@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>quicksort</title>
+		<style>
+			body {
+				margin: 0px;
+				overflow: hidden;
+			}
+		</style>
+	</head>
+	<body>
+		<canvas id = 'canvas' width = 1536 height = 722></canvas>
+		<script>
+			var pincel = document.getElementById('canvas').getContext('2d');
+			function esperar(milissegundos) {
+				return new Promise(resolve => setTimeout(resolve, milissegundos));
+			}
+			async function desordenar(array) {
+				var divisa = array.length;
+				var index_mudados = [];
+				while(divisa > 0) {
+					var index_aleatorio = Math.floor(Math.random() * divisa);
+					index_mudados.push(index_aleatorio);
+					divisa--;
+					var array_divisa = array[divisa];
+					array[divisa] = array[index_aleatorio];
+					array[index_aleatorio] = array_divisa;
+					await esperar(1);
+					desenha(array, divisa, undefined, divisa - 1, index_aleatorio, index_mudados);
+				}
+			}
+			function desenha(array, index_pivo, iteracao, inicio, fim, index_mudados) {
+				pincel.clearRect(0, 0, 1536, 721);
+				for(var i = 0;i < array.length;i++) {
+					pincel.fillStyle = 'black';
+					if(i == iteracao) {
+						pincel.fillStyle = 'rgba(0, 0, 255, 0.5)';
+					}
+					if(i == index_pivo) {
+						pincel.fillStyle = 'orange';
+					}
+					if(i < inicio) {
+						pincel.fillStyle = 'blue';
+					}
+					if(index_mudados) {
+						for(var j = 0;j < index_mudados.length;j++) {
+							if(i == index_mudados[j]) {
+								pincel.fillStyle = 'black';
+								break;
+							}
+						}
+					}
+					if(i == inicio || i == fim) {
+						pincel.fillStyle = 'green';
+					}
+					pincel.fillRect(i, 721 - array[i], 1, array[i]);
+				}
+			}
+			async function quicksort(array, inicio, fim) {
+				if(inicio < fim) {
+					var index_pivo = inicio;
+					var pivo = array[fim];
+					for(var i = inicio;i < fim;i++) {
+						if(array[i] < pivo) {
+							var array_i = array[i];
+							array[i] = array[index_pivo];
+							array[index_pivo] = array_i;
+							index_pivo++;
+							await esperar(1);
+							desenha(array, index_pivo, i, inicio, fim);
+						}
+					}
+					array[fim] = array[index_pivo];
+					array[index_pivo] = pivo;
+					await esperar(1);
+					desenha(array, index_pivo, fim, inicio, fim);
+					await quicksort(array, inicio, index_pivo - 1);
+					await quicksort(array, index_pivo + 1, fim);
+				}
+			}
+			var array_aleatorio = [];
+			for(var i = 0;i < 1536;i++) {
+				array_aleatorio.push(i * 721 / 1536);
+			}
+			desenha(array_aleatorio, undefined, undefined, array_aleatorio.length);
+			async function ordenar() {
+				while(true) {
+					await esperar(2000);
+					await desordenar(array_aleatorio);
+					await esperar(2000);
+					await quicksort(array_aleatorio, 0, array_aleatorio.length - 1);
+					desenha(array_aleatorio, array_aleatorio.length - 1, array_aleatorio.length - 1, array_aleatorio.length - 1, array_aleatorio.length - 1);
+				}
+			}
+			ordenar();
+		</script>
+	</body>
+</html>

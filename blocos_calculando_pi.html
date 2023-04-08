@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>blocos calculando pi</title>
+		<style>
+			body {
+				margin: 0px;
+				overflow: hidden;
+			}
+		</style>
+	</head>
+	<body>
+		<canvas id = 'canvas'></canvas>
+		<script>
+			function desenhar() {
+				pincel.fillStyle = 'black';
+				pincel.fillRect(0, 0, largura, altura);
+				pincel.fillStyle = '#303030';
+				pincel.strokeStyle = '#808080';
+				pincel.lineWidth = 2;
+				pincel.fillRect(x2, altura / 2 - 150, 150, 150);
+				pincel.strokeRect(x2, altura / 2 - 150, 150, 150);
+				pincel.fillRect(x1, altura / 2 - 50, 50, 50);
+				pincel.strokeRect(x1, altura / 2 - 50, 50, 50);
+				pincel.beginPath();
+				pincel.moveTo(0, altura / 2);
+				pincel.lineTo(largura, altura / 2);
+				pincel.stroke();
+				pincel.fillStyle = '#808080';
+				pincel.font = '100px arial';
+				pincel.fillText(quantidade_colisoes, 10, 3 * altura / 4);
+			}
+			async function atualizar(dt) {
+				var t = dt;
+				var proximo_dt = 1;
+				for(var i = 0;proximo_dt > 0;i++) {
+					var colidir = false;
+					var inverter = false;
+					var t1 = (x1 - x2 + 50) / (v2 - v1);
+					var t2 = -x1 / v1;
+					if(t1 > 1e-16 && t1 <= t) {
+						t = t1;
+						colidir = true;
+					}
+					if(t2 > 1e-16 && t2 <= t) {
+						t = t2;
+						colidir = false;
+						inverter = true;
+					}
+					proximo_dt = dt - t;
+					x1 += t * v1;
+					x2 += t * v2;
+					if(colidir) {
+						var novo_v1 = v1 * (1 - m2) / (1 + m2) + 2 * v2 * m2 / (1 + m2);
+						var novo_v2 = 2 * v1 / (1 + m2) + v2 * (m2 - 1) / (1 + m2);
+						v1 = novo_v1;
+						v2 = novo_v2;
+						quantidade_colisoes++;
+					}
+					if(inverter) {
+						v1 *= -1;
+						quantidade_colisoes++;
+					}
+					dt = proximo_dt;
+					t = dt;
+					if(i % 65536 == 65535) {
+						desenhar();
+						await new Promise(r => setTimeout(r, 0));
+					}
+				}
+			}
+			var canvas = document.getElementById('canvas');
+			var pincel = canvas.getContext('2d');
+			var largura = window.innerWidth;
+			var altura = window.innerHeight;
+			canvas.width = largura;
+			canvas.height = altura;
+			window.onresize = function() {
+				largura = window.innerWidth;
+				altura = window.innerHeight;
+				canvas.width = largura;
+				canvas.height = altura;
+			}
+			var x1 = 250;
+			var x2 = 500;
+			var v1 = 0;
+			var v2 = -(100 * (1 + Math.sqrt(5) / 2));
+			var dt = 1 / 60;
+			var quantidade_digitos = 8;
+			var m2 = 100 ** quantidade_digitos;
+			var quantidade_colisoes = 0;
+			function time_step() {
+				atualizar(dt);
+				desenhar();
+				requestAnimationFrame(time_step);
+			}
+			requestAnimationFrame(time_step);
+		</script>
+	</body>
+</html>

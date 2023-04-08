@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset = 'utf-8'>
+		<title>jogo da cobrinha</title>
+		<style>
+			body {
+				margin: 0px;
+				overflow: hidden;
+			}
+		</style>
+	</head>
+	<body>
+		<canvas id = 'canvas'></canvas>
+		<script>
+			class Cobra {
+				constructor() {
+					this.corpo_x = [Math.floor(quantidade_quadrados / 4), Math.floor(quantidade_quadrados / 4) - 1, Math.floor(quantidade_quadrados / 4) - 2, Math.floor(quantidade_quadrados / 4) - 3];
+					this.corpo_y = [Math.floor(quantidade_quadrados / 2), Math.floor(quantidade_quadrados / 2), Math.floor(quantidade_quadrados / 2), Math.floor(quantidade_quadrados / 2)];
+					this.dir_x = 1;
+					this.dir_y = 0;
+					this.tamanho = 4;
+				}
+				desenhar() {
+					pincel.lineJoin = 'round';
+					pincel.lineCap = 'round';
+					var incremento = 0.1;
+					for(var i = 0;i < this.tamanho - 2;i += incremento) {
+						pincel.lineWidth = tamanho_quadrados / 2 * ((this.tamanho - 2 - i) ** Math.min(this.tamanho / 10, 1)) / (this.tamanho - 2) + tamanho_quadrados / 2;
+						pincel.strokeStyle = `rgb(${50 * (this.tamanho - 1 - i) / (this.tamanho - 1)}, ${50 * (this.tamanho - 1 - i) / (this.tamanho - 1)}, ${200 + 55 * (this.tamanho - 1 - i) / (this.tamanho - 1)})`;
+						pincel.beginPath();
+						var x1 = (1 - (i % 1)) * this.corpo_x[Math.floor(i)] + (i % 1) * this.corpo_x[Math.floor(i + 1)];
+						var x2 = (1 - (i % 1)) * this.corpo_x[Math.floor(i + incremento)] + (i % 1) * this.corpo_x[Math.floor(i + 1 + incremento)];
+						var y1 = (1 - (i % 1)) * this.corpo_y[Math.floor(i)] + (i % 1) * this.corpo_y[Math.floor(i + 1)];
+						var y2 = (1 - (i % 1)) * this.corpo_y[Math.floor(i + incremento)] + (i % 1) * this.corpo_y[Math.floor(i + 1 + incremento)];
+						pincel.moveTo((x1 + 0.5) * tamanho_quadrados + largura / 2 - altura / 2 + 50, (y1 + 0.5) * tamanho_quadrados + 50);
+						pincel.lineTo((x2 + 0.5) * tamanho_quadrados + largura / 2 - altura / 2 + 50, (y2 + 0.5) * tamanho_quadrados + 50);
+						pincel.stroke();
+					}
+				}
+				mover(fruta) {
+					var proximo_corpo_x = [];
+					var proximo_corpo_y = [];
+					for(var i = 1;i < this.tamanho;i++) {
+						proximo_corpo_x.push(this.corpo_x[i - 1]);
+						proximo_corpo_y.push(this.corpo_y[i - 1]);
+					}
+					proximo_corpo_x.unshift(this.corpo_x[0] + this.dir_x);
+					proximo_corpo_y.unshift(this.corpo_y[0] + this.dir_y);
+					if(fruta.x == proximo_corpo_x[0] && fruta.y == proximo_corpo_y[0]) {
+						proximo_corpo_x.push(this.corpo_x[this.tamanho - 1]);
+						proximo_corpo_y.push(this.corpo_y[this.tamanho - 1]);
+						this.tamanho++;
+						fruta.comer(proximo_corpo_x, proximo_corpo_y);
+					}
+					for(var i = 1;i < this.tamanho;i++) {
+						if(proximo_corpo_x[i] == proximo_corpo_x[0] && proximo_corpo_y[i] == proximo_corpo_y[0]) {
+							return true;
+						}
+					}
+					if(proximo_corpo_x[0] >= 0 && proximo_corpo_x[0] < quantidade_quadrados && proximo_corpo_y[0] >= 0 && proximo_corpo_y[0] < quantidade_quadrados) {
+						this.corpo_x = proximo_corpo_x;
+						this.corpo_y = proximo_corpo_y;
+						return false;
+					}
+					return true;
+				}
+				mudar_direcao(dir_x, dir_y) {
+					if((dir_x != 0 || dir_y != 0) && !(dir_x != 0 && dir_y != 0)) {
+						if((this.dir_x > 0 && dir_x >= 0) || (this.dir_x < 0 && dir_x <= 0) || this.dir_x == 0) {
+							this.dir_x = dir_x;
+						}
+						if((this.dir_y > 0 && dir_y >= 0) || (this.dir_y < 0 && dir_y <= 0) || this.dir_y == 0) {
+							this.dir_y = dir_y;
+						}
+					}
+				}
+			}
+
+			class Fruta {
+				constructor(cobra, x, y) {
+					var achou = false;
+					if(x && y) {
+						achou = true;
+						for(var i = 0;i < cobra.tamanho;i++) {
+							if(cobra.corpo_x[i] == x && cobra.corpo_y[i] == y) {
+								achou = false;
+							}
+						}
+						if(achou) {
+							this.x = x;
+							this.y = y;
+						}
+					}
+					var tentados = [];
+					while(!achou) {
+						x = Math.floor(Math.random() * quantidade_quadrados);
+						y = Math.floor(Math.random() * quantidade_quadrados);
+						if(!(cobra.corpo_x.includes(x) && cobra.corpo_y.includes(y) && tentados.includes(x) && tentados.includes(y))) {
+							this.x = x;
+							this.y = y;
+							achou = true;
+						} else if(tentados.length == 2 * quantidade_quadrados * quantidade_quadrados) {
+							return true;
+						} else {
+							tentados.push(x, y);
+						}
+					}
+					return false;
+				}
+				comer(corpo_x, corpo_y) {
+					var achou = false;
+					pontuacao++;
+					var tentados = [];
+					while(!achou) {
+						var x = Math.floor(Math.random() * quantidade_quadrados);
+						var y = Math.floor(Math.random() * quantidade_quadrados);
+						if(!(tentados.includes(x) && tentados.includes(y)) || !(cobra.corpo_x.includes(x) && cobra.corpo_y.includes(y))) {
+							this.x = x;
+							this.y = y;
+							achou = true;
+						} else if(tentados.length == 2 * quantidade_quadrados * quantidade_quadrados) {
+							console.log('venceu');
+						} else {
+							tentados.push(x, y);
+						}
+					}
+					return false;
+				}
+				desenhar() {
+					pincel.drawImage(imagem1, this.x * tamanho_quadrados + largura / 2 - altura / 2 + 50, this.y * tamanho_quadrados + 50, tamanho_quadrados, tamanho_quadrados);
+				}
+			}
+
+			var canvas = document.getElementById('canvas');
+			var pincel = canvas.getContext('2d');
+			var largura = window.innerWidth;
+			var altura = window.innerHeight;
+			canvas.width = largura;
+			canvas.height = altura;
+			window.onresize = function() {
+				largura = window.innerWidth;
+				altura = window.innerHeight;
+				canvas.width = largura;
+				canvas.height = altura;
+			}
+
+			if(localStorage.getItem('recorde2') == null) {
+				localStorage.setItem('recorde2', 0);
+			}
+
+			var quantidade_quadrados = 8;
+			var tamanho_quadrados = (altura - 100) / quantidade_quadrados;
+
+			var cobra = new Cobra();
+			var fruta = new Fruta(cobra, Math.floor(3 * quantidade_quadrados / 4), Math.floor(quantidade_quadrados / 2));
+
+			var vivo = true;
+			var movimentos = [];
+			var pontuacao = 0;
+
+			var imagem1 = document.createElement('img');
+			imagem1.src = 'https://www.google.com/logos/fnbx/snake_arcade/v3/apple_00.png';
+			var imagem2 = document.createElement('img');
+			imagem2.src = 'https://www.google.com/logos/fnbx/snake_arcade/v3/trophy_00.png';
+			var imagem3 = document.createElement('img');
+			imagem3.src = 'https://cdn2.iconfinder.com/data/icons/ios-7-icons/50/reload-512.png';
+			var quantidade_imagens_carregadas = 0;
+			imagem1.onload = function() {
+				quantidade_imagens_carregadas++;
+				if(quantidade_imagens_carregadas == 3) {
+					renderizar();
+				}
+			}
+			imagem2.onload = function() {
+				quantidade_imagens_carregadas++;
+				if(quantidade_imagens_carregadas == 3) {
+					renderizar();
+				}
+			}
+			imagem3.onload = function() {
+				quantidade_imagens_carregadas++;
+				if(quantidade_imagens_carregadas == 3) {
+					renderizar();
+				}
+			}
+
+			canvas.onclick = function(event) {
+				var dx = Math.max(largura / 2 - event.clientX - 25, 0, event.clientX - largura / 2 - 25);
+				var dy = Math.max(altura / 2 - event.clientY + 75, 0, event.clientY - altura / 2 - 125);
+				if(!vivo && dx * dx + dy * dy < 625) {
+					vivo = true;
+					cobra = new Cobra();
+					fruta = new Fruta(cobra, Math.floor(3 * quantidade_quadrados / 4), Math.floor(quantidade_quadrados / 2));
+					pontuacao = 0;
+				}
+			}
+
+			function renderizar() {
+				pincel.fillStyle = 'darkgreen';
+				pincel.fillRect(0, 0, largura, altura);
+				for(var i = 0;i < (altura - 100) / tamanho_quadrados;i++) {
+					for(var j = 0;j < (altura - 100) / tamanho_quadrados;j++) {
+						pincel.fillStyle = (i + j) % 2 == 0 ? 'rgb(0, 255, 0)' : 'rgb(0, 200, 0)';
+						pincel.fillRect(largura / 2 - altura / 2 + 50 + i * tamanho_quadrados, 50 + j * tamanho_quadrados, tamanho_quadrados, tamanho_quadrados);
+					}
+				}
+
+				pincel.drawImage(imagem2, largura / 2 + 75, 0, 50, 50);
+				pincel.drawImage(imagem1, largura / 2 - 125, 0, 50, 50);
+				pincel.fillStyle = 'white'
+				pincel.font = '25px arial';
+				pincel.textAlign = 'center';
+				pincel.fillText(pontuacao, largura / 2 - 50, 37.5);
+				pincel.fillText(localStorage.getItem('recorde2'), largura / 2 + 50, 37.5);
+
+				if(movimentos[0] != undefined) {
+					cobra.mudar_direcao(...movimentos[0]);
+					movimentos.shift();
+				}
+				if(vivo && cobra.mover(fruta)) {
+					vivo = false;
+					if(pontuacao > localStorage.getItem('recorde2')) {
+						localStorage.setItem('recorde2', pontuacao);
+					}
+				}
+				cobra.desenhar();
+				fruta.desenhar();
+
+				if(!vivo) {
+					pincel.fillStyle = 'rgba(0, 0, 0, 0.5)';
+					pincel.fillRect(0, 0, largura, altura);
+					pincel.font = '100px arial';
+					pincel.textAlign = 'center';
+					pincel.fillStyle = 'white';
+					pincel.fillText('VOCÊ PERDEU!', largura / 2, altura / 2);
+					pincel.fillStyle = 'red';
+					pincel.strokeStyle = 'red';
+					pincel.lineJoin = 'round';
+					pincel.lineWidth = 50;
+					pincel.beginPath();
+					pincel.rect(largura / 2 - 25, altura / 2 + 75, 50, 50);
+					pincel.fill();
+					pincel.stroke();
+					pincel.drawImage(imagem3, largura / 2 - 50, altura / 2 + 50, 100, 100);
+				}
+
+				setTimeout(renderizar, 500);
+			}
+
+			var teclas_pressionadas = [];
+			document.onkeydown = function(event) {
+				if(!teclas_pressionadas.includes(event.keyCode)) {
+					if(vivo) {
+						if(event.keyCode == 37) {
+							movimentos.push([-1, 0]);
+						}
+						if(event.keyCode == 38) {
+							movimentos.push([0, -1]);
+						}
+						if(event.keyCode == 39) {
+							movimentos.push([1, 0]);
+						}
+						if(event.keyCode == 40) {
+							movimentos.push([0, 1]);
+						}
+					}
+					if(event.keyCode == 82) {
+						vivo = true;
+						cobra = new Cobra();
+						fruta = new Fruta(cobra, Math.floor(3 * quantidade_quadrados / 4), Math.floor(quantidade_quadrados / 2));
+						pontuacao = 0;
+					}
+				}
+				if(!teclas_pressionadas.includes(event.keyCode)) {
+					teclas_pressionadas.push(event.keyCode);
+				}
+			}
+			document.onkeyup = function(event) {
+				teclas_pressionadas.splice(teclas_pressionadas.indexOf(event.keyCode), 1);
+			}
+		</script>
+	</body>
+</html>

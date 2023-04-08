@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang = 'pt-BR'>
+	<head>
+		<meta charset = 'utf-8' name = 'viewport' content = 'width = device-width, initial-scale = 1'>
+		<title>carpete de sierpinski</title>
+		<style>
+			body {
+				margin: 0px;
+				overflow: hidden;
+			}
+		</style>
+	</head>
+	<body>
+		<canvas id = 'canvas'></canvas>
+		<script type = 'module'>
+			class Quadrado {
+				constructor(x, y, lado) {
+					this.x = x;
+					this.y = y;
+					this.lado = lado;
+				}
+				desenhar() {
+					pincel.fillStyle = 'white';
+					pincel.fillRect(this.x, this.y, this.lado, this.lado);
+				}
+				particionar(quadrados) {
+					for(var i = -1;i <= 1;i++) {
+						for(var j = -1;j <= 1;j++) {
+							if(i != 0 || j != 0) {
+								quadrados.push(new Quadrado(this.x + (i + 1 / 3) * this.lado, this.y + (j + 1 / 3) * this.lado, this.lado / 3))
+							}
+						}
+					}
+					// for(var i = 0;i <= 2 * this.lado / 3;i += this.lado / 3) {
+					// 	for(var j = 0;j <= 2 * this.lado / 3;j += this.lado / 3) {
+					// 		if(i != this.lado / 3 || j != this.lado / 3) {
+					// 			quadrados.push(new Quadrado(this.x + i, this.y + j, this.lado / 3));
+					// 		}
+					// 	}
+					// }
+					// quadrados.splice(quadrados.indexOf(this), 1);
+				}
+			}
+			function esperar(milissegundos) {
+				return new Promise(resolve => setTimeout(resolve, milissegundos));
+			}
+			var canvas = document.getElementById('canvas');
+			var pincel = canvas.getContext('2d');
+			var largura = window.innerWidth;
+			var altura = window.innerHeight;
+			canvas.width = largura;
+			canvas.height = altura;
+			window.onresize = function() {
+				largura = window.innerWidth;
+				altura = window.innerHeight;
+				canvas.width = largura;
+				canvas.height = altura;
+			}
+			var quadrados = [new Quadrado(largura / 2 - altura / 2 + altura / 3, altura / 3, altura / 3)];
+			pincel.fillStyle = 'black';
+			pincel.fillRect((largura - altura) / 2, 0, altura, altura);
+			for(var i = 0;true;i++) {
+				if(i % 10 == 0) {
+					await esperar(1);
+				}
+				quadrados[i].desenhar();
+				quadrados[i].particionar(quadrados);
+			}
+		</script>
+	</body>
+</html>

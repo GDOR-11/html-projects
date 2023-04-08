@@ -1,0 +1,109 @@
+<meta charset="UTF-8">
+<input/>
+<button>verificar</button>
+<script>
+	console.log("ATENÇÃO");
+	console.log("COPIAR, REESCREVER OU COLAR ESTE CÓDIGO PERMITE QUE INVASORES FALSIFIQUEM SUA IDENTIDADE E ROUBEM INFORMAÇÕES POR MEIO DE UM ATAQUE CHAMADO SELF-XSS. NÃO COPIE, REESCREVA OU COLE CÓDIGOS QUE VOCÊ NÃO CONHECE, INCLUINDO ESTE.");
+	function pulaLinha(){
+		document.write("<br><br>");
+	}
+	function mostra(frase){
+		document.write(frase);
+	}
+
+	function verifica(){
+		if (chute.value >= 0 && chute.value <= quantidadePossibilidades && chute.value % 1 == 0) {
+			for (var limite2 = 0;limite2 < quantidadeNumeros;limite2++) {
+				if (chute.value == numeroPensado[limite2]) {
+					mostra("<h1>VOCÊ É ALGUM TIPO DE BRUXO?</h1>");
+					mostra("-sim")
+					pulaLinha();
+					pulaLinha();
+					pulaLinha();
+					mostra("Gostando do jogo? Clique <a href = file:///C:/Users/sidin/Desktop/logica/jogo_advinha.html>aqui</a> para jogar de novo");
+					break;
+				}else{
+					if (limite2 == quantidadeNumeros - 1) {
+						mostra("<h1>ERROU</h1>");
+						if (quantidadeNumeros > 1) {
+							for (var i = 0;i < quantidadeNumeros * tamanhoNumero + 7;i++) {
+								mostra("HA");
+							}
+						} else {
+							for (var i = 0;i < quantidadeNumeros * tamanhoNumero + 5;i++) {
+								mostra("HA");
+							}
+						}
+						pulaLinha();
+						if (numeroPensado.length > 1) {
+							mostra("<br>OS NUMEROS ERAM " + numeroPensado);
+						} else {
+							mostra("<br>O NUMERO ERA " + numeroPensado);
+						}
+						pulaLinha();
+						mostra("<br>clique <a href = file:///C:/Users/sidin/Desktop/logica/jogo_advinha.html>aqui</a> para tentar de novo");
+					}
+				}
+			}
+		} else {
+			mostra("valor inserido inválido, para tentar de novo, clique <a href = file:///C:/Users/sidin/Desktop/logica/jogo_advinha.html>aqui</a>");
+		}
+	}
+	function sorteia(numero, quantidade){
+		quantidadePossibilidades = numero;
+		var numeroPensado = [];
+		var limite = 0;
+		while (limite < quantidade) {
+			var numeroAleatorio = Math.round(Math.random() * numero);
+			for (var limite0 = 0;limite0 < quantidade;limite0++) {
+				if (numeroPensado[limite0] == numeroAleatorio) {
+					break;
+				}else if (limite0 == quantidade - 1) {
+					numeroPensado.push(numeroAleatorio);
+					limite++;
+				}
+			}
+		}
+		return numeroPensado;
+	}
+	var numeroDificuldade;
+	var quantidadePossibilidades;
+	var tamanhoNumero;
+	var dificuldade = prompt("Selecione a dificuldade: fácil, médio, difícil ou ultra difícil.");
+	var quantidadeNumeros = parseInt(prompt("Quantos números corretos você quer?"));
+	setTimeout(function() {
+		document.querySelector('input').focus();
+	}, 0);
+	if ((dificuldade == "facil" || dificuldade == "Facil" || dificuldade == "fácil" || dificuldade == "Fácil") && quantidadeNumeros > 0 && quantidadeNumeros < 12) {
+		numeroDificuldade = 1;
+		var tamanhoNumero = 0.5;
+		var numeroPensado = sorteia(10, quantidadeNumeros);
+		pulaLinha();
+		mostra("Digite um número de 0 a 10");
+	} else if ((dificuldade == "medio" || dificuldade == "Medio" || dificuldade == "médio" || dificuldade == "Médio") && quantidadeNumeros > 0 && quantidadeNumeros < 102) {
+		numeroDificuldade = 2;
+		var tamanhoNumero = 0.76;
+		var numeroPensado = sorteia(100, quantidadeNumeros);
+		pulaLinha();
+		mostra("Digite um número de 0 a 100");
+	} else if ((dificuldade == "dificil" || dificuldade == "Dificil" || dificuldade == "difícil" || dificuldade == "Difícil") && quantidadeNumeros > 0 && quantidadeNumeros < 1002) {
+		numeroDificuldade = 3;
+		var tamanhoNumero = 1.165;
+		var numeroPensado = sorteia(1000, quantidadeNumeros);
+		pulaLinha();
+		mostra("Digite um número de 0 a 1000");
+	} else if ((dificuldade == "ultra dificil" || dificuldade == "ultra Dificil" || dificuldade == "Ultra dificil" || dificuldade == "Ultra Dificil" || dificuldade == "ultra difícil" || dificuldade == "ultra Difícil" || dificuldade == "Ultra difícil" || dificuldade == "Ultra Difícil" || dificuldade == "ultradificil" || dificuldade == "ultraDificil" || dificuldade == "Ultradificil" || dificuldade == "UltraDificil" || dificuldade == "ultradifícil" || dificuldade == "ultraDifícil" || dificuldade == "Ultradifícil" || dificuldade == "UltraDifícil") && quantidadeNumeros > 0 && quantidadeNumeros < 10002) {
+		numeroDificuldade = 4;
+		var tamanhoNumero = 1.5182;
+		var numeroPensado = sorteia(10000, quantidadeNumeros);
+		pulaLinha();
+		mostra("Digite um número de 0 a 10000");
+	} else {
+		console.log("não se preocupe, esse erro deveria acontecer e indica BOM FUNCIONAMENTO do sistema");
+		document.body.innerHTML = "";
+		mostra("A quantidade de números ou a dificuldade inserida é inválida, para tentar de novo, clique <a href = file:///C:/Users/sidin/Desktop/logica/jogo_advinha.html>aqui</a>");
+	}
+	var chute = document.querySelector("input");
+	var botao = document.querySelector("button");
+	botao.onclick = verifica;
+</script>

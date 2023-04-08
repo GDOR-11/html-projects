@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>mandelbrot set</title>
+		<style>
+			body {
+				margin: 0px;
+				overflow: hidden;
+			}
+		</style>
+	</head>
+	<body>
+		<canvas id = 'canvas' width = 1539 height = 864 style = 'width: 100vw;height: 100vh;'></canvas>
+		<pre id = 'texto_pos' style = 'position: absolute;top: 0px;left: 0px;margin: 10px;'>coordenadas: 0 + 0i</pre>
+		<pre id = 'texto_zoom' style = 'position: absolute;top: 20px;left: 0px;margin: 10px;'>zoom: 1</pre>
+		<pre id = 'texto_ir_para' style = 'position: absolute;top: 60px;left: 0px;margin: 10px;'>ir para <input id = 'parte_real'> + <input id = 'parte_imaginaria'>i     <button id = 'ir_para'>ir</button></pre>
+		<pre id = 'texto_mudar_zoom' style = 'position: absolute;top: 90px;left: 0px;margin: 10px;'>mudar zoom para <input id = 'zoom'>     <button id = 'mudar_zoom'>ir</button></pre>
+		<script id = 'vertex_glsl' type = 'vertex_glsl'>
+			precision highp float;
+			precision highp int;
+
+			attribute vec4 pos;
+ 
+			void main() {
+				gl_Position = pos;
+			}
+		</script>
+		<script id = 'fragment_glsl' type = 'fragment_glsl'>
+			precision highp float;
+			precision highp int;
+
+			struct Numero {
+				float parte_inteira;
+				float quantidade_zeros;
+				float parte_decimal;
+			};
+			Numero somar(Numero num1, Numero num2) {
+				Numero resultado;
+				resultado.quantidade_zeros = min(num1.quantidade_zeros, num2.quantidade_zeros);
+				float tamanho_parte_decimal = max(ceil(log(num1.parte_decimal) / log(10.0)), ceil(log(num2.parte_decimal) / log(10.0)));
+				float soma_decimal = num1.parte_decimal + num2.parte_decimal;
+				if(ceil(log(soma_decimal) / log(10.0)) > tamanho_parte_decimal) {
+					resultado.quantidade_zeros--;
+				}
+				float resto = 0.0;
+				if(resultado.quantidade_zeros == -1.0) {
+					resultado.quantidade_zeros = 0.0;
+					resto = 1.0;
+				}
+				resultado.parte_decimal = num1.parte_decimal + num2.parte_decimal;
+				resultado.parte_inteira = num1.parte_inteira + num2.parte_inteira + resto;
+				return Numero(1.0, 0.0, 1.0);
+			}
+
+			uniform vec2 localizacao;
+			uniform vec2 resolucao;
+			uniform float zoom;
+
+			vec2 mult(vec2 z1, vec2 z2) {
+				return vec2(z1.x * z2.x - z1.y * z2.y, z1.y * z2.x + z1.x * z2.y);
+			}
+			vec2 soma(vec2 z1, vec2 z2) {
+				return vec2(z1.x + z2.x, z1.y + z2.y);
+			}
+			vec2 quadrado(vec2 z) {
+				return mult(z, z);
+			}
+			vec2 iteracao_z(vec2 pos, vec2 z) {
+				return soma(quadrado(z), pos);
+			}
+			vec2 iteracao_dz(vec2 pos, vec2 z, vec2 dz) {
+				return soma(mult(mult(vec2(2.0, 0.0), z), dz), vec2(1.0, 0.0));
+			}
+			void main() {
+				vec2 pos = ((gl_FragCoord.xy - 0.5) * 4.0 / resolucao.xy - 2.0) / zoom + localizacao.xy;
+				vec2 z = vec2(0.0);
+				const float limite = 10000.0 / 7.0; // * 7 (35000)
+				float iter = 0.0;
+				for(float i = 0.0;i < limite;i++) {
+					z = iteracao_z(pos, iteracao_z(pos, iteracao_z(pos, iteracao_z(pos, iteracao_z(pos, iteracao_z(pos, iteracao_z(pos, z)))))));
+					if(length(z) > 2.0) {
+						iter = i;
+						break;
+					}
+				}
+				if(iter == limite) {
+					gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0);
+				} else {
+					z = vec2(0.0);
+					vec2 dz = vec2(1.0, 0.0);
+					const float limite2 = 10000.0; // * 3 (30000)
+					for(float i = 0.0;i < limite2;i++) {
+						dz = iteracao_dz(pos, iteracao_z(pos, iteracao_z(pos, z)), iteracao_dz(pos, iteracao_z(pos, z), iteracao_dz(pos, z, dz)));
+						z = iteracao_z(pos, iteracao_z(pos, iteracao_z(pos, z)));
+						if(length(z) > 16.0) {
+							break;
+						}
+					}
+					float dist = length(z) * log(length(z)) / length(dz);
+					float cor;
+					if(dist > 0.0) {
+						cor = pow(dist * zoom, 0.2);
+					} else {
+						cor = 0.0;
+					}
+					gl_FragColor = vec4(vec3(cor), 1.0);
+				}
+			}
+		</script>
+		<script>
+			function toFixed(x) {
+				x = Math.round(x * 1e+15) / 1e+15;
+				if(x.toString().split('.')[1]) {
+					return x.toFixed(x.toString().split('.')[1].length);
+				} else {
+					return x.toFixed(0);
+				}
+			}
+			function numero_imaginario(parte_real, parte_imaginaria) {
+				if(Math.abs(parte_imaginaria) == parte_imaginaria) {
+					return toFixed(pos.x) + ' + ' + toFixed(pos.y) + 'i';
+				} else {
+					return toFixed(pos.x) + ' - ' + toFixed(Math.abs(pos.y)) + 'i';
+				}
+			}
+			var pos = {
+				x: 0,
+				y: 0
+			};
+			var zoom = 1;
+
+			var canvas = document.getElementById('canvas');
+			var tamanho = Math.min(document.body.clientWidth, document.body.clientHeight - 4);
+			canvas.style.width = tamanho + 'px';
+			canvas.style.height = tamanho + 'px';
+			canvas.width = tamanho;
+			canvas.height = tamanho;
+			var gl = canvas.getContext('webgl2');
+			var codigo_vertex_shader = document.getElementById('vertex_glsl').innerHTML;
+			var codigo_fragment_shader = document.getElementById('fragment_glsl').innerHTML;
+
+			function cria_shader(tipo, codigo) {
+				var shader = gl.createShader(tipo);
+				gl.shaderSource(shader, codigo);
+				gl.compileShader(shader);
+				if(gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+					return shader;
+				}
+				console.error('erro de compilação:\n\n' + gl.getShaderInfoLog(shader));
+				gl.deleteShader(shader);
+			}
+
+			var vertex_shader = cria_shader(gl.VERTEX_SHADER, codigo_vertex_shader);
+			var fragment_shader = cria_shader(gl.FRAGMENT_SHADER, codigo_fragment_shader);
+
+			function cria_programa(vertex_shader, fragment_shader) {
+				var programa = gl.createProgram();
+				gl.attachShader(programa, vertex_shader);
+				gl.attachShader(programa, fragment_shader);
+				gl.linkProgram(programa);
+				if(gl.getProgramParameter(programa, gl.LINK_STATUS)) {
+					return programa;
+				}
+				console.error('erro de compilação:\n\n' + gl.getProgramInfoLog(programa));
+				gl.deleteProgram(programa);
+			}
+
+			var programa = cria_programa(vertex_shader, fragment_shader);
+
+			var localizacao_atributo_pos = gl.getAttribLocation(programa, 'pos');
+
+			gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
+
+			gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, -1, 1, 1, 1, -1, -1, 1, -1, 1, 1]), gl.STATIC_DRAW);
+
+			gl.useProgram(programa);
+
+			gl.uniform2f(gl.getUniformLocation(programa, 'localizacao'), pos.x, pos.y);
+			gl.uniform2f(gl.getUniformLocation(programa, 'resolucao'), canvas.width, canvas.height);
+			gl.uniform1f(gl.getUniformLocation(programa, 'zoom'), zoom);
+
+			gl.enableVertexAttribArray(localizacao_atributo_pos);
+
+			gl.vertexAttribPointer(localizacao_atributo_pos, 2, gl.FLOAT, false, 0, 0);
+
+			gl.drawArrays(gl.TRIANGLES, 0, 6);
+
+
+
+			var texto_pos = document.getElementById('texto_pos');
+			texto_pos.style.left = tamanho + 'px';
+
+			var texto_zoom = document.getElementById('texto_zoom');
+			texto_zoom.style.left = tamanho + 'px';
+
+			document.getElementById('texto_ir_para').style.left = tamanho + 'px';
+
+			document.getElementById('texto_mudar_zoom').style.left = tamanho + 'px';
+
+			canvas.onclick = function(event) {
+				var x = event.clientX;
+				var y = tamanho / 2 + (tamanho / 2 - event.clientY);
+				var nova_pos = {
+					x: (x * 4 / tamanho - 2) / zoom + pos.x,
+					y: (y * 4 / tamanho - 2) / zoom + pos.y
+				};
+				pos = {
+					x: (nova_pos.x + pos.x) / 2,
+					y: (nova_pos.y + pos.y) / 2
+				};
+				zoom *= 2;
+				gl.uniform2f(gl.getUniformLocation(programa, 'localizacao'), pos.x, pos.y);
+				gl.uniform1f(gl.getUniformLocation(programa, 'zoom'), zoom);
+				texto_pos.innerHTML = 'coordenadas: ' + numero_imaginario(pos.x, pos.y);
+				texto_zoom.innerHTML = 'zoom: ' + toFixed(zoom);
+				gl.drawArrays(gl.TRIANGLES, 0, 6);
+			}
+			canvas.oncontextmenu = function(event) {
+				var x = tamanho / 2 + (tamanho / 2 - event.clientX);
+				var y = event.clientY;
+				var nova_pos = {
+					x: (x * 4 / tamanho - 2) / zoom + pos.x,
+					y: (y * 4 / tamanho - 2) / zoom + pos.y
+				};
+				zoom /= 2;
+				pos = nova_pos;
+				gl.uniform2f(gl.getUniformLocation(programa, 'localizacao'), pos.x, pos.y);
+				gl.uniform1f(gl.getUniformLocation(programa, 'zoom'), zoom);
+				texto_pos.innerHTML = 'coordenadas: ' + numero_imaginario(pos.x, pos.y);
+				texto_zoom.innerHTML = 'zoom: ' + toFixed(zoom);
+				gl.drawArrays(gl.TRIANGLES, 0, 6);
+				return false;
+			}
+			document.getElementById('ir_para').onclick = function() {
+				var parte_real = parseFloat(document.getElementById('parte_real').value);
+				var parte_imaginaria = parseFloat(document.getElementById('parte_imaginaria').value);
+				if(!isNaN(parte_real)) {
+					pos.x = parte_real;
+				} else {
+					pos.x = 0;
+				}
+				if(!isNaN(parte_imaginaria)) {
+					pos.y = parte_imaginaria;
+				} else {
+					pos.y = 0;
+				}
+				gl.uniform2f(gl.getUniformLocation(programa, 'localizacao'), pos.x, pos.y);
+				texto_pos.innerHTML = 'coordenadas: ' + numero_imaginario(pos.x, pos.y);
+				gl.drawArrays(gl.TRIANGLES, 0, 6);
+			}
+			document.getElementById('mudar_zoom').onclick = function() {
+				var proximo_zoom = parseFloat(document.getElementById('zoom').value);
+				if(!isNaN(proximo_zoom)) {
+					zoom = proximo_zoom;
+				} else {
+					zoom = 1;
+				}
+				gl.uniform1f(gl.getUniformLocation(programa, 'zoom'), zoom);
+				texto_zoom.innerHTML = 'zoom: ' + toFixed(zoom);
+				gl.drawArrays(gl.TRIANGLES, 0, 6);
+			}
+		</script>
+	</body>
+</html>

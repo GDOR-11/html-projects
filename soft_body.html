@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang = 'pt-BR'>
+	<head>
+		<meta charset = 'utf-8' name = 'viewport' content = 'width = device-width, initial-scale = 1'>
+		<title>soft body simulation</title>
+		<style>
+			body {
+				margin: 0px;
+				overflow: hidden;
+			}
+			canvas {
+				background-color: #000;
+			}
+		</style>
+	</head>
+	<body>
+		<canvas id = 'canvas'></canvas>
+		<script>
+			class Mola {
+				constructor(a, b, stiffness, rest_length, damping) {
+					this.a = a;
+					this.b = b;
+					this.stiffness = stiffness;
+					this.rest_length = rest_length;
+					this.damping = damping;
+				}
+				atualizar(dt) {
+					var dist = Math.hypot(this.a.x - this.b.x, this.a.y - this.b.y);
+					var forca = this.stiffness * (dist - this.rest_length) + this.damping * (this.b.vx - this.a.vx) * (this.b.x - this.a.x) / dist + (this.b.vy - this.a.vy) * (this.b.y - this.a.y) / dist;
+					this.a.aplicar_forca(forca * (this.b.x - this.a.x) / dist, forca * (this.b.y - this.a.y) / dist, dt);
+					this.b.aplicar_forca(forca * (this.a.x - this.b.x) / dist, forca * (this.a.y - this.b.y) / dist, dt);
+				}
+				desenhar() {
+					pincel.strokeStyle = 'white';
+					pincel.lineJoin = 'miter';
+					pincel.lineWidth = 1;
+					pincel.beginPath();
+					pincel.moveTo(this.a.x, this.a.y);
+					pincel.lineTo(this.b.x, this.b.y);
+					pincel.stroke();
+				}
+			}
+			class PontoDeMassa {
+				constructor(x, y, vx, vy) {
+					this.x = x;
+					this.y = y;
+					var a = Math.random() * 2 * Math.PI;
+					this.vx = vx || 500 * Math.cos(a);
+					this.vy = vy || 500 * Math.sin(a);
+				}
+				desenhar() {
+					pincel.strokeStyle = 'blue';
+					pincel.lineJoin = 'round';
+					pincel.lineWidth = 3;
+					pincel.strokeRect(this.x, this.y, 0.0001, 0.0001);
+				}
+				aplicar_forca(fx, fy, dt) {
+					this.vx += fx * dt;
+					this.vy += fy * dt;
+				}
+				atualizar(dt, pontos) {
+					this.aplicar_forca(gx, gy, dt);
+					if(this.y >= altura && this.vy > 0 || (this.y <= 0 && this.vy < 0)) {
+						this.vx = 1 + 100 * dt;
+						this.vy = 0;
+					}
+					if(this.x >= largura && this.vx > 0 || (this.x <= 0 && this.vx < 0)) {
+						this.vx = 0;
+						this.vy = 1 + 100 * dt;
+					}
+					this.x += this.vx * dt;
+					this.y += this.vy * dt;
+				}
+			}
+			var canvas = document.getElementById('canvas');
+			var pincel = canvas.getContext('2d');
+			var largura = window.innerWidth;
+			var altura = window.innerHeight;
+			canvas.width = largura;
+			canvas.height = altura;
+			window.onresize = function() {
+				largura = window.innerWidth;
+				altura = window.innerHeight;
+				canvas.width = largura;
+				canvas.height = altura;
+			}
+			var gx = 0;
+			var gy = 1000;
+			var espacamento_objeto_1 = 15;
+			var largura_objeto_1 = 100;
+			var altura_objeto_1 = Math.floor((altura - 200) / espacamento_objeto_1) * espacamento_objeto_1;
+			var pontos_objeto_1 = [];
+			for(var x = 100;x < 100 + largura_objeto_1;x += espacamento_objeto_1) {
+				for(var y = 100;y < 100 + altura_objeto_1;y += espacamento_objeto_1) {
+					pontos_objeto_1.push(new PontoDeMassa(x, y, -1000, -500));
+				}
+			}
+			var raio_objeto_2 = 100;
+			var pontos_objeto_2 = [];
+			for(var a = 0;a < 2 * Math.PI;a += Math.PI / 15) {
+				pontos_objeto_2.push(new PontoDeMassa(500 + raio_objeto_2 * Math.cos(a), altura / 2 + raio_objeto_2 * Math.sin(a), 2000 * Math.random(), -700));
+			}
+			var molas = [];
+			for(var i = 0;i < largura_objeto_1 / espacamento_objeto_1;i++) {
+				for(var j = 0;j < altura_objeto_1 / espacamento_objeto_1;j++) {
+					var index1 = i * altura_objeto_1 / espacamento_objeto_1 + j;
+					var index2 = (i + 1) * altura_objeto_1 / espacamento_objeto_1 + j;
+					var index3 = (i + 1) * altura_objeto_1 / espacamento_objeto_1 + (j + 1);
+					var index4 = i * altura_objeto_1 / espacamento_objeto_1 + (j + 1);
+					var index5 = (i - 1) * altura_objeto_1 / espacamento_objeto_1 + (j + 1);
+					if(i + 1 < largura_objeto_1 / espacamento_objeto_1) {
+						molas.push(new Mola(pontos_objeto_1[index1], pontos_objeto_1[index2], 200000, espacamento_objeto_1, 0.2));
+						if(j + 1 < altura_objeto_1 / espacamento_objeto_1) {
+							molas.push(new Mola(pontos_objeto_1[index1], pontos_objeto_1[index3], 200000, espacamento_objeto_1 * Math.SQRT2, 0.2));
+						}
+					}
+					if(j + 1 < altura_objeto_1 / espacamento_objeto_1) {
+						molas.push(new Mola(pontos_objeto_1[index1], pontos_objeto_1[index4], 200000, espacamento_objeto_1, 0.2));
+						if(i - 1 >= 0) {
+							molas.push(new Mola(pontos_objeto_1[index1], pontos_objeto_1[index5], 200000, espacamento_objeto_1 * Math.SQRT2, 0.2));
+						}
+					}
+				}
+			}
+			for(var i = 0;i < pontos_objeto_2.length;i++) {
+				var obj1 = pontos_objeto_2[i];
+				var obj2 = pontos_objeto_2[(i + 1) % pontos_objeto_2.length];
+				var obj3 = pontos_objeto_2[(i + 2) % pontos_objeto_2.length];
+				molas.push(new Mola(obj1, obj2, 2500000, Math.hypot(obj1.x - obj2.x, obj1.y - obj2.y), 0));
+				molas.push(new Mola(obj1, obj3, 2500000, Math.hypot(obj1.x - obj3.x, obj1.y - obj3.y), 0));
+				// for(var j = i + 1;j < pontos_objeto_2.length;j++) {
+				// 	molas.push(new Mola(pontos_objeto_2[i], pontos_objeto_2[j], 25, Math.hypot(pontos_objeto_2[i].x - pontos_objeto_2[j].x, pontos_objeto_2[i].y - pontos_objeto_2[j].y), 0.25));
+				// }
+			}
+			var dt = 0.0001;
+			function renderizar() {
+				pincel.clearRect(0, 0, largura, altura);
+				for(var i = 0;i < 100;i++) {
+					for(var ponto of pontos_objeto_1) {
+						ponto.atualizar(dt, pontos_objeto_1.concat(pontos_objeto_2));
+					}
+					for(var ponto of pontos_objeto_2) {
+						ponto.atualizar(dt, pontos_objeto_1.concat(pontos_objeto_2));
+					}
+					for(var mola of molas) {
+						mola.atualizar(dt);
+					}
+				}
+				for(var mola of molas) {
+					mola.desenhar();
+				}
+				for(var ponto of pontos_objeto_1) {
+					ponto.desenhar();
+				}
+				for(var ponto of pontos_objeto_2) {
+					ponto.desenhar();
+				}
+				requestAnimationFrame(renderizar);
+			}
+			requestAnimationFrame(renderizar);
+		</script>
+	</body>
+</html>

@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang = 'pt-BR'>
+	<head>
+		<meta charset = 'utf-8' name = 'viewport' content = 'width = device-width, initial-scale = 1'>
+		<title>reation diffusion</title>
+		<style>
+			body {
+				margin: 0px;
+				overflow: hidden;
+			}
+		</style>
+	</head>
+	<body>
+		<canvas id = 'canvas' style = 'background-color: #000;'></canvas>
+		<script id = 'vertex_glsl' type = 'vertex_glsl'>
+			attribute vec4 pos;
+ 
+			void main() {
+				gl_Position = pos;
+			}
+		</script>
+		<script id = 'fragment_glsl' type = 'fragment_glsl'>
+			precision highp float;
+
+			uniform vec2 resolucao;
+			uniform sampler2D textura;
+
+			const float Da = 1.0;
+			const float Db = 0.5;
+			const float f = 0.037;
+			const float k = 0.06;
+			const float dt = 1.0;
+
+			int index(int i, int j) {
+				int index = i + 3 * j + 4;
+				return index < 4 ? index : index - 1;
+			}
+			int mod(int x, int y) {
+				float xf = float(x);
+				float yf = float(y);
+				return int(xf - yf * floor(xf / yf));
+			}
+			vec2 laplace(vec2 AB, vec2[8] vizinhos) {
+				vec2 soma = -AB;
+				soma += vizinhos[0] * 0.05;
+				soma += vizinhos[1] * 0.2;
+				soma += vizinhos[2] * 0.05;
+				soma += vizinhos[3] * 0.2;
+				soma += vizinhos[4] * 0.2;
+				soma += vizinhos[5] * 0.05;
+				soma += vizinhos[6] * 0.2;
+				soma += vizinhos[7] * 0.05;
+				return soma;
+			}
+
+			void main() {
+				vec2 uv = gl_FragCoord.xy / resolucao;
+				uv.y = 1.0 - uv.y;
+				vec2 vizinhos[8];
+				for(int i = -1;i <= 1;i++) {
+					for(int j = -1;j <= 1;j++) {
+						if(i == 0 && j == 0) {
+							continue;
+						}
+						vec2 pos = mod(gl_FragCoord.xy + vec2(i, j), resolucao) / resolucao;
+						pos.y = 1.0 - pos.y;
+						vizinhos[index(i, j)] = texture2D(textura, pos).xy;
+					}
+				}
+				vec4 tex = texture2D(textura, uv);
+				vec2 cor = tex.xy;
+				vec2 laplace = laplace(cor, vizinhos);
+				float a = cor.x;
+				float b = cor.y;
+				float proximo_a = a + (Da * laplace.x - a * b * b + f * (1.0 - a)) * dt;
+				float proximo_b = b + (Db * laplace.y + a * b * b - (k + f) * b) * dt;
+				gl_FragColor = vec4(proximo_a, proximo_b, tex.zw);
+				// gl_FragColor = vec4(vizinhos[3], tex.zw);
+			}
+		</script>
+		<script>
+			function resize() {
+				largura = window.innerWidth;
+				altura = window.innerHeight;
+				canvas.width = largura;
+				canvas.height = altura;
+				gl.viewport(0, 0, largura, altura);
+				if(localizacao_uniform_resolucao != undefined) {
+					gl.uniform2f(localizacao_uniform_resolucao, canvas.width, canvas.height);
+				}
+			}
+			function smoothstep(x, min, max, k) {
+				return min + (max - min) * (k * (x - 0.5) / (2 + 2 * k * Math.abs(x - 0.5)) + 0.5);
+			}
+			var canvas = document.getElementById('canvas');
+			var gl = canvas.getContext('webgl');
+			var codigo_vertex_shader = document.getElementById('vertex_glsl').innerHTML;
+			var codigo_fragment_shader = document.getElementById('fragment_glsl').innerHTML;
+			resize();
+			window.onresize = resize;
+
+			function cria_shader(tipo, codigo) {
+				var shader = gl.createShader(tipo);
+				gl.shaderSource(shader, codigo);
+				gl.compileShader(shader);
+				if(gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+					return shader;
+				}
+				console.error('erro de compilação:\n\n' + gl.getShaderInfoLog(shader));
+				gl.deleteShader(shader);
+			}
+
+			var vertex_shader = cria_shader(gl.VERTEX_SHADER, codigo_vertex_shader);
+			var fragment_shader = cria_shader(gl.FRAGMENT_SHADER, codigo_fragment_shader);
+
+			function cria_programa(vertex_shader, fragment_shader) {
+				var programa = gl.createProgram();
+				gl.attachShader(programa, vertex_shader);
+				gl.attachShader(programa, fragment_shader);
+				gl.linkProgram(programa);
+				if(gl.getProgramParameter(programa, gl.LINK_STATUS)) {
+					return programa;
+				}
+				console.error('erro de compilação:\n\n' + gl.getProgramInfoLog(programa));
+				gl.deleteProgram(programa);
+			}
+
+			var programa = cria_programa(vertex_shader, fragment_shader);
+
+			var localizacao_atributo_pos = gl.getAttribLocation(programa, 'pos');
+
+			gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
+
+			var pontos = [
+				-1, -1,
+				-1, 1,
+				1, 1,
+				-1, -1,
+				1, -1,
+				1, 1
+			];
+
+			gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(pontos), gl.STATIC_DRAW);
+
+			gl.useProgram(programa);
+
+			var localizacao_uniform_resolucao = gl.getUniformLocation(programa, 'resolucao');
+			gl.uniform2f(localizacao_uniform_resolucao, canvas.width, canvas.height);
+
+			gl.enableVertexAttribArray(localizacao_atributo_pos);
+
+			gl.vertexAttribPointer(localizacao_atributo_pos, 2, gl.FLOAT, false, 0, 0);
+
+
+			function renderizar() {
+				for(var i = 0;i < 4;i++) {
+					gl.drawArrays(gl.TRIANGLES, 0, pontos.length);
+					gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA,gl.UNSIGNED_BYTE, canvas);
+				}
+				requestAnimationFrame(renderizar);
+			}
+			requestAnimationFrame(renderizar);
+
+
+			// criando textura
+			var textura = gl.createTexture();
+			gl.bindTexture(gl.TEXTURE_2D, textura);
+			var w = 2 ** Math.ceil(Math.log2(largura));
+			var h = 2 ** Math.ceil(Math.log2(altura));
+			var data = new Uint8Array(4 * w * h);
+			// for(var x = 0;x < w;x++) {
+			// 	for(var y = 0;y < h;y++) {
+			// 		var index = 4 * (x + w * y);
+			// 		var dist = Math.hypot((x / w - 0.5) * largura, (y / h - 0.5) * altura);
+			// 		var col = 5 / dist;
+			// 		col = smoothstep(col, 0, 255, 10000);
+			// 		data[index] = 255 - col;
+			// 		data[index + 1] = col;
+			// 		data[index + 2] = 0;
+			// 		data[index + 3] = 255;
+			// 	}
+			// }
+			for(var i = 0;i < data.length;i += 4) {
+				data[i] = 255;
+				data[i + 1] = 0;
+				data[i + 2] = 0;
+				data[i + 3] = 255;
+			}
+			gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, w, h, 0, gl.RGBA, gl.UNSIGNED_BYTE, data);
+			gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+			gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+			gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+
+			function potencia_de_dois(x) {
+				return (x & (x - 1)) == 0;
+			}
+
+			var passive = false;
+			try {
+				window.addEventListener('event-listener', null, Object.defineProperty({}, 'passive', {get: () => passive = {passive: true}}));
+			} catch(error) {}
+
+			window.addEventListener('mousedown', function(event) {
+				var x = Math.floor(w * event.clientX / largura);
+				var y = Math.floor(h * event.clientY / altura);
+				for(var j = 0;j < 16;j++) {
+					for(var k = 0;k < 16;k++) {
+						var index = 4 * ((x + j) + w * (y + k));
+						data[index] = 0;
+						data[index + 1] = 255;
+						data[index + 2] = 0;
+						data[index + 3] = 255;
+					}
+				}
+				gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, w, h, 0, gl.RGBA, gl.UNSIGNED_BYTE, data);
+			}, passive);
+		</script>
+	</body>
+</html>

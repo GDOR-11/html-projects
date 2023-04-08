@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang = 'pt-BR'>
+	<head>
+		<meta charset = 'utf-8' name = 'viewport' content = 'width = device-width, initial-scale = 1'>
+		<title>teste FOV</title>
+		<style>
+			body {
+				margin: 0px;
+				overflow: hidden;
+			}
+		</style>
+		<script src = 'http://threejs.org/build/three.min.js'></script>
+	</head>
+	<body>
+		<script>
+			function cm_para_pixels() {
+				var div = document.createElement('div');
+				div.style.width = '1cm';
+				document.body.append(div);
+				var resultado = div.clientWidth;
+				div.parentNode.removeChild(div);
+				return resultado;
+			}
+			function FOV(largura, altura) {
+				var pixels_para_cm = 1 / cm_para_pixels();
+				var largura_cm = largura * pixels_para_cm;
+				var altura_cm = altura * pixels_para_cm;
+
+				var aspecto = largura_cm / altura_cm;
+
+				var tamanho_diagonal = Math.hypot(largura_cm, altura_cm);
+
+				var distancia_tela = 30; // 30cm
+
+				var radianos = 2 * Math.atan(largura_cm / (2 * distancia_tela));
+				var graus = radianos * 180 / Math.PI;
+
+				return graus;
+			}
+
+			var renderizador = new THREE.WebGLRenderer();
+			renderizador.setSize(window.innerWidth, window.innerHeight);
+			document.body.append(renderizador.domElement);
+
+			var fov = FOV(window.innerWidth, window.innerHeight);
+			var aspecto = window.innerWidth / window.innerHeight;
+			var maximo_perto = 0.1;
+			var maximo_longe = 8.988465674311579e+307;
+			var camera = new THREE.PerspectiveCamera(fov, aspecto, maximo_perto, maximo_longe);
+
+			var cena = new THREE.Scene();
+
+			var geometria = new THREE.BoxBufferGeometry(1, 1, 1);
+			var material = new THREE.MeshNormalMaterial();
+			var cubo = new THREE.Mesh(geometria, material);
+			cubo.position.z -= 5;
+			cena.add(cubo);
+
+			function renderizar(tempo) {
+				tempo /= 1000;
+				cubo.rotation.x = tempo * 1.3;
+				cubo.rotation.y = tempo * 1.4;
+				cubo.rotation.z = tempo * 1.5;
+				renderizador.render(cena, camera);
+				requestAnimationFrame(renderizar);
+			}
+			requestAnimationFrame(renderizar);
+		</script>
+	</body>
+</html>

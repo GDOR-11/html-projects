@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang = 'pt-BR'>
+	<head>
+		<meta charset = 'utf-8' name = 'viewport' content = 'width = device-width, initial-scale = 1'>
+		<title>fogos de artifício</title>
+		<style>
+			body {
+				margin: 0px;
+				overflow: hidden;
+			}
+		</style>
+	</head>
+	<body>
+		<canvas id = 'canvas'></canvas>
+		<script>
+			class Particula {
+				constructor(arg1, arg2, arg3, arg4) {
+					this.x = arg1;
+					this.y = arg2;
+					var a = Math.random() * 2 * Math.PI;
+					if(typeof arg3 != 'undefined' && typeof arg4 == 'undefined') {
+						this.vx = Math.random() * arg3 * Math.cos(a);
+						this.vy = Math.random() * arg3 * Math.sin(a);
+					} else {
+						this.vx = typeof arg3 != 'undefined' ? arg3 : Math.random() * 250 * Math.cos(a);
+						this.vy = typeof arg4 != 'undefined' ? arg4 : Math.random() * 250 * Math.cos(a);
+					}
+					this.a = 1;
+				}
+				desenhar(r, g, b) {
+					pincel.strokeStyle = `rgba(${r}, ${g}, ${b}, ${this.a})`;
+					pincel.strokeRect(this.x, this.y, 1, 1);
+				}
+				atualizar(dt) {
+					this.a -= dt / 2;
+					this.vx += gx * dt;
+					this.vy += gy * dt;
+					this.x += this.vx * dt;
+					this.y += this.vy * dt;
+				}
+			}
+			class FogoDeArtificio {
+				constructor(x, y, vx, vy, cor) {
+					this.x = x || Math.random() * largura;
+					this.y = y || altura;
+					this.vx = vx || 0;
+					this.vy = vy || -(300 + Math.random() * 50);
+					this.particulas = [];
+					this.estourou = false;
+					this.r = Math.random() * 255;
+					this.g = Math.random() * 255;
+					this.b = Math.random() * 255;
+				}
+				desenhar() {
+					pincel.lineWidth = 1;
+					pincel.lineJoin = 'round';
+					for(var particula of this.particulas) {
+						particula.desenhar(this.r, this.g, this.b);
+					}
+				}
+				atualizar(dt, fogos_de_artificio) {
+					this.vx += gx * dt;
+					this.vy += gy * dt;
+					this.x += this.vx * dt;
+					this.y += this.vy * dt;
+					if(!this.estourou && this.vy >= 0) {
+						this.estourou = true;
+						var tamanho = Math.random() * 200 + 50;
+						for(var i = 0;i < 2500;i++) {
+							this.particulas.push(new Particula(this.x, this.y, tamanho));
+						}
+					}
+					for(var i = this.particulas.length - 1;i >= 0;i--) {
+						if(this.particulas[i].x < 0 || this.particulas[i].x > largura || this.particulas[i].y > altura || this.particulas[i].a <= 0) {
+							this.particulas.splice(this.particulas.indexOf(this.particulas[i]), 1);
+						}
+					}
+					if(this.estourou) {
+						if(this.particulas.length == 0) {
+							fogos_de_artificio.splice(fogos_de_artificio.indexOf(this));
+							return;
+						}
+					} else {
+						this.particulas.push(new Particula(this.x, this.y, Math.random() * 5, Math.random() * 5));
+					}
+					for(var particula of this.particulas) {
+						particula.atualizar(dt);
+					}
+				}
+			}
+			var canvas = document.getElementById('canvas');
+			var pincel = canvas.getContext('2d');
+			var largura = window.innerWidth;
+			var altura = window.innerHeight;
+			canvas.width = largura;
+			canvas.height = altura;
+			window.onresize = function() {
+				largura = window.innerWidth;
+				altura = window.innerHeight;
+				canvas.width = largura;
+				canvas.height = altura;
+			}
+			var gx = 0;
+			var gy = 100;
+			var fogos_de_artificio = [];
+			for(var i = 0;i < 5;i++) {
+				fogos_de_artificio.push(new FogoDeArtificio());
+			}
+			var agora = Date.now();
+			function renderizar() {
+				var dt = (Date.now() - agora) / 1000;
+				agora = Date.now();
+				if(dt < 0.1) {
+					if(Math.random() < 0.05) {
+						fogos_de_artificio.push(new FogoDeArtificio());
+					}
+					pincel.fillStyle = 'rgba(0, 0, 0, 0.2)';
+					pincel.fillRect(0, 0, largura, altura);
+					for(var i = fogos_de_artificio.length - 1;i >= 0;i--) {
+						fogos_de_artificio[i].atualizar(dt, []);
+						fogos_de_artificio[i].desenhar();
+					}
+				}
+				requestAnimationFrame(renderizar);
+			}
+			requestAnimationFrame(renderizar);
+			var full_screen = false;
+			document.onfullscreenchange = function(event) {
+				full_screen = !full_screen;
+				document.body.style.cursor = full_screen ? 'none' : 'context-menu';
+			}
+			document.onclick = function(event) {
+				document.documentElement.requestFullscreen();
+			}
+		</script>
+	</body>
+</html>

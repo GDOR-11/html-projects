@@ -1,0 +1,208 @@
+<body id = 'body' style = 'margin:0px;overflow:hidden;'>
+	<canvas id = 'canvas' width = 722 height = 722></canvas>
+	<canvas style = 'position:absolute;top:0;left:0;' id = 'malha_quadriculada' width = 722 height = 722></canvas>
+	<p style = 'position:absolute;bottom:-10;left:726;' id = 'velocidade'>x1</p>
+	<button style = 'position:absolute;top:5;left:726;' id = 'comecar'>começar</button>
+	<button style = 'position:absolute;top:5;left:805;' id = 'parar'>parar</button>
+	<button style = 'position:absolute;top:5;left:865;' id = 'preencher_aleatoriamente'>preencher aleatóriamente</button>
+	<button style = 'position:absolute;top:5;left:1045;' id = 'limpar'>limpar</button>
+	<button style = 'position:absolute;top:5;left:1112;' id = 'aumentar_velocidade'>aumentar velocidade</button>
+	<button style = 'position:absolute;top:5;left:1265;' id = 'diminuir_velocidade'>diminuir velocidade</button>
+	<script>
+		var canvas = document.getElementById('canvas');
+		var pincel = canvas.getContext('2d');
+
+		var malha_quadriculada = document.getElementById('malha_quadriculada');
+		var pincel2 = malha_quadriculada.getContext('2d');
+
+		var tamanho = malha_quadriculada.width;
+		var quantidade_quadrados = 100;
+		var lado = tamanho / quantidade_quadrados;
+		// pincel2.fillRect(0, 0, tamanho, tamanho);
+		for(var i = 0.5;i < tamanho;i += lado) {
+			for(var j = 0.5;j < tamanho;j += lado) {
+				pincel2.clearRect(i, j, lado - 1, lado - 1);
+			}
+		}
+
+		class Celula {
+			constructor(x, y, estado) {
+				this.x = x;
+				this.y = y;
+				this.estado = estado;
+				this.proximo_estado = this.estado;
+			}
+			desenhar() {
+				if(this.estado == 1) {
+					pincel.fillStyle = 'black';
+				} else {
+					pincel.fillStyle = 'white';
+				}
+				pincel.fillRect(this.x * lado + 0.5, this.y * lado + 0.5, lado - 1, lado - 1);
+			}
+			atualizar() {
+				this.estado = this.proximo_estado;
+			}
+			calcular_proxima_iteracao() {
+				var vizinhos = [
+					celulas[(this.x + 1) % quantidade_quadrados][(this.y + 1) % quantidade_quadrados],
+					celulas[(this.x + 1) % quantidade_quadrados][this.y],
+					celulas[(this.x + 1) % quantidade_quadrados][(this.y + quantidade_quadrados - 1) % quantidade_quadrados],
+					celulas[this.x][(this.y + quantidade_quadrados - 1) % quantidade_quadrados],
+					celulas[(this.x + quantidade_quadrados - 1) % quantidade_quadrados][(this.y + quantidade_quadrados - 1) % quantidade_quadrados],
+					celulas[(this.x + quantidade_quadrados - 1) % quantidade_quadrados][this.y],
+					celulas[(this.x + quantidade_quadrados - 1) % quantidade_quadrados][(this.y + 1) % quantidade_quadrados],
+					celulas[this.x][(this.y + 1) % quantidade_quadrados]
+				];
+				var quantidade_vizinhos_vivos = 0;
+				for(var i = 0;i < vizinhos.length;i++) {
+					if(vizinhos[i].estado == 1) {
+						quantidade_vizinhos_vivos++;
+					}
+				}
+				if(this.estado == 0) {
+					if(quantidade_vizinhos_vivos == 3) {
+						this.proximo_estado = 1;
+					} else {
+						this.proximo_estado = 0;
+					}
+				} else {
+					if(quantidade_vizinhos_vivos < 2 || quantidade_vizinhos_vivos > 3) {
+						this.proximo_estado = 0;
+					} else {
+						this.proximo_estado = 1;
+					}
+				}
+			}
+			mudar_estado() {
+				if(this.estado == 0) {
+					this.estado = 1;
+				} else {
+					this.estado = 0;
+				}
+			}
+		}
+
+		var velocidade = 1;
+		var celulas = [];
+		for(var x = 0;x < quantidade_quadrados;x++) {
+			celulas.push([]);
+			for(var y = 0;y < quantidade_quadrados;y++) {
+				celulas[x].push(new Celula(x, y, 0));
+			}
+		}
+
+		var simulacao = undefined;
+		document.getElementById('comecar').onclick = function() {
+			if(simulacao == undefined) {
+				simulacao = setInterval(function() {
+					for(var x = 0; x < quantidade_quadrados;x++) {
+						for(var y = 0;y < quantidade_quadrados;y++) {
+							celulas[x][y].calcular_proxima_iteracao();
+						}
+					}
+					for(var x = 0; x < quantidade_quadrados;x++) {
+						for(var y = 0;y < quantidade_quadrados;y++) {
+							celulas[x][y].atualizar();
+							celulas[x][y].desenhar();
+						}
+					}
+				}, 1000 / velocidade);
+			}
+		}
+		document.getElementById('parar').onclick = function() {
+			if(simulacao != undefined) {
+				clearInterval(simulacao);
+				simulacao = undefined;
+			}
+		}
+		document.getElementById('preencher_aleatoriamente').onclick = function() {
+			for(var x = 0; x < quantidade_quadrados;x++) {
+				for(var y = 0;y < quantidade_quadrados;y++) {
+					if(Math.random() < 0.5) {
+						celulas[x][y].estado = 1;
+					} else {
+						celulas[x][y].estado = 0;
+					}
+					celulas[x][y].desenhar();
+				}
+			}
+		}
+		document.getElementById('limpar').onclick = function() {
+			for(var x = 0; x < quantidade_quadrados;x++) {
+				for(var y = 0;y < quantidade_quadrados;y++) {
+					celulas[x][y].estado = 0;
+					celulas[x][y].desenhar();
+				}
+			}
+		}
+		document.getElementById('aumentar_velocidade').onclick = function() {
+			velocidade *= 2;
+			document.getElementById('velocidade').innerHTML = 'x' + velocidade;
+			if(simulacao) {
+				clearInterval(simulacao);
+				simulacao = setInterval(function() {
+					for(var i = 0;i < Math.max(1, velocidade / 128);i++) {
+						for(var x = 0; x < quantidade_quadrados;x++) {
+							for(var y = 0;y < quantidade_quadrados;y++) {
+								celulas[x][y].calcular_proxima_iteracao();
+							}
+						}
+						for(var x = 0; x < quantidade_quadrados;x++) {
+							for(var y = 0;y < quantidade_quadrados;y++) {
+								celulas[x][y].atualizar();
+								celulas[x][y].desenhar();
+							}
+						}
+					}
+				}, 1000 / velocidade);
+			}
+		}
+		document.getElementById('diminuir_velocidade').onclick = function() {
+			velocidade /= 2;
+			document.getElementById('velocidade').innerHTML = 'x' + velocidade;
+			if(simulacao) {
+				clearInterval(simulacao);
+				simulacao = setInterval(function() {
+					for(var i = 0;i < Math.max(1, velocidade / 128);i++) {
+						for(var x = 0; x < quantidade_quadrados;x++) {
+							for(var y = 0;y < quantidade_quadrados;y++) {
+								celulas[x][y].calcular_proxima_iteracao();
+							}
+						}
+						for(var x = 0; x < quantidade_quadrados;x++) {
+							for(var y = 0;y < quantidade_quadrados;y++) {
+								celulas[x][y].atualizar();
+								celulas[x][y].desenhar();
+							}
+						}
+					}
+				}, 1000 / velocidade);
+			}
+		}
+
+		var mouse_pressionado = false;
+		var pos_anterior = [-1, -1];
+		document.onmousedown = function(event) {
+			mouse_pressionado = true;
+			var x_mouse = Math.floor(event.clientX / lado);
+			var y_mouse = Math.floor(event.clientY / lado);
+			if(x_mouse < quantidade_quadrados) {
+				celulas[x_mouse][y_mouse].mudar_estado();
+				celulas[x_mouse][y_mouse].desenhar();
+			}
+		}
+		document.onmouseup = function(event) {
+			mouse_pressionado = false;
+		}
+		document.getElementById('malha_quadriculada').onmousemove = function(event) {
+			if(mouse_pressionado == true && (Math.floor(event.clientX / lado) != Math.floor(pos_anterior[0] / lado) || Math.floor(event.clientY / lado) != Math.floor(pos_anterior[1] / lado))) {
+				var x_mouse = Math.floor(event.clientX / lado);
+				var y_mouse = Math.floor(event.clientY / lado);
+				celulas[x_mouse][y_mouse].mudar_estado();
+				celulas[x_mouse][y_mouse].desenhar();
+			}
+			pos_anterior = [event.clientX, event.clientY];
+		}
+	</script>
+</body>

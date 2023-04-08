@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang = 'pt-BR'>
+	<head>
+		<meta charset = 'utf-8' name = 'viewport' content = 'width = device-width, initial-scale = 1'>
+		<title>sistema de partículas</title>
+		<style>
+			body {
+				margin: 0px;
+				overflow: hidden;
+			}
+		</style>
+	</head>
+	<body>
+		<canvas id = 'canvas'></canvas>
+		<script>
+			class Particula {
+				constructor(x, y, vx, vy) {
+					this.x = x;
+					this.y = y;
+					var a = Math.random() * 2 * Math.PI;
+					this.vx = vx || 100 * Math.cos(a);
+					this.vy = vy || 100 * Math.sin(a);
+				}
+				desenhar() {
+					pincel.strokeStyle = 'rgba(0, 0, 255, 1)';
+					pincel.lineWidth = 1;
+					pincel.lineJoin = 'round';
+					pincel.strokeRect(this.x, this.y, 1, 1);
+				}
+				atualizar(dt, particulas) {
+					this.vx += gx * dt;
+					this.vy += gy * dt;
+					this.x += this.vx * dt;
+					this.y += this.vy * dt;
+					if(this.x < 0 || this.x > largura || this.y > altura) {
+						particulas.splice(particulas.indexOf(this), 1);
+					}
+				}
+			}
+			class Emissor {
+				constructor(x, y, vx, vy) {
+					this.x = x;
+					this.y = y;
+					this.vx = vx || Math.random() * 1000 - 500;
+					this.vy = vy || -500;
+					this.particulas = [];
+					this.quantidade_particulas_expelidas = Math.random() * 50;
+				}
+				desenhar() {
+					for(var particula of this.particulas) {
+						particula.desenhar();
+					}
+				}
+				atualizar(dt, emissores) {
+					this.vx += gx * dt;
+					this.vy += gy * dt;
+					this.x += this.vx * dt;
+					this.y += this.vy * dt;
+					if(this.particulas.length == 0 && (this.x < 0 || this.x > largura || this.y > altura)) {
+						emissores.splice(emissores.indexOf(this), 1);
+					}
+					for(var i = 0;i < this.quantidade_particulas_expelidas;i++) {
+						this.particulas.push(new Particula(this.x, this.y));
+					}
+					for(var particula of this.particulas) {
+						particula.atualizar(dt, this.particulas);
+					}
+				}
+			}
+			class EmissorDeEmissores {
+				constructor(x, y) {
+					this.x = x;
+					this.y = y;
+					this.emissores = [];
+				}
+				desenhar() {
+					for(var emissor of this.emissores) {
+						emissor.desenhar();
+					}
+				}
+				atualizar(dt, quantidade_emissores, quantidade_particulas) {
+					for(var i = 0;i < quantidade_emissores;i++) {
+						this.emissores.push(new Emissor(this.x, this.y));
+					}
+					for(var emissor of this.emissores) {
+						emissor.atualizar(dt, this.emissores);
+					}
+				}
+			}
+			var canvas = document.getElementById('canvas');
+			var pincel = canvas.getContext('2d');
+			var largura = window.innerWidth;
+			var altura = window.innerHeight;
+			canvas.width = largura;
+			canvas.height = altura;
+			window.onresize = function() {
+				largura = window.innerWidth;
+				altura = window.innerHeight;
+				canvas.width = largura;
+				canvas.height = altura;
+			}
+			var gx = 0;
+			var gy = 1000;
+			var emissor_de_emissores = new EmissorDeEmissores(largura / 2, 100);
+			var agora = Date.now();
+			function renderizar() {
+				var dt = (Date.now() - agora) / 1000;
+				agora = Date.now();
+				if(dt < 0.1) {
+					pincel.fillStyle = 'black';
+					pincel.fillRect(0, 0, largura, altura);
+					emissor_de_emissores.desenhar();
+					emissor_de_emissores.atualizar(dt, Math.floor(Math.random() * 1.1), 10);
+				}
+				requestAnimationFrame(renderizar);
+			}
+			requestAnimationFrame(renderizar);
+		</script>
+	</body>
+</html>

@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang = 'pt-BR'>
+	<head>
+		<meta charset = 'utf-8' name = 'viewport' content = 'width = device-width, initial-scale = 1'>
+		<title>senhas</title>
+	</head>
+	<body>
+		<p id = 'texto_digitar_senha'>digite uma senha de 6 caracteres:</p>
+		<input id = 'senha' placeholder = 'senha' style = 'width: 150px'>
+		<p id = 'texto_carregando' style = 'display: none;'>carregando...</p>
+		<p id = 'texto_tentativa_atual' style = 'display: none;'></p>
+		<script>
+			var input = document.getElementById('senha');
+			var texto_digitar_senha = document.getElementById('texto_digitar_senha');
+			var texto_carregando = document.getElementById('texto_carregando');
+			var texto_tentativa_atual = document.getElementById('texto_tentativa_atual');
+			input.onkeydown = function(event) {
+				if(event.keyCode == 13) {
+					var quantidade_digitos = input.value.length;
+					var senha = ('0'.repeat(Math.max(6 - quantidade_digitos, 0)) + input.value.toLowerCase()).slice(0, 6);
+					input.value = senha;
+					texto_carregando.style.display = 'block';
+					texto_carregando.innerHTML = 'carregando...';
+					texto_tentativa_atual.style.display = 'block';
+					var caracteres = [];
+					(async function() {
+						for(var a = 0;a < 36;a++) {
+							var letra1 = a < 10 ? a.toString() : String.fromCharCode(a + 87);
+							for(var b = 0;b < 36;b++) {
+								var letra2 = b < 10 ? b.toString() : String.fromCharCode(b + 87);
+								for(var c = 0;c < 36;c++) {
+									var letra3 = c < 10 ? c.toString() : String.fromCharCode(c + 87);
+									for(var d = 0;d < 36;d++) {
+										var letra4 = d < 10 ? d.toString() : String.fromCharCode(d + 87);
+										for(var e = 0;e < 36;e++) {
+											var letra5 = e < 10 ? e.toString() : String.fromCharCode(e + 87);
+											for(var f = 0;f < 36;f++) {
+												var letra6 = f < 10 ? f.toString() : String.fromCharCode(f + 87);
+												var tentativa = letra1 + letra2 + letra3 + letra4 + letra5 + letra6;
+												if(tentativa == senha) {
+													texto_tentativa_atual.innerHTML = tentativa;
+													texto_carregando.innerHTML = 'pronto!';
+													return;
+												} else if(Math.random() < 0.000001) {
+													await new Promise(r => setTimeout(r, 1));
+													texto_tentativa_atual.innerHTML = tentativa;
+												}
+											}
+										}
+									}
+								}
+							}
+						}
+					})();
+				}
+			}
+		</script>
+	</body>
+</html>

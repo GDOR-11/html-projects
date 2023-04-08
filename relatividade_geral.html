@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang = 'pt-BR'>
+	<head>
+		<meta charset = 'utf-8' name = 'viewport' content = 'width = device-width, initial-scale = 1'>
+		<title>relatividade geral</title>
+	</head>
+	<body>
+		<script> // tudo aqui ta usando schwarzschild metric (boa para buracos negros), e assumindo um buraco negro estatico
+			// 0 = tempo  1 = distancia  2 = angulo
+			function metric_tensor(alpha, beta, r) {
+				if(alpha == beta) {
+					switch(alpha) {
+						case 0: // (g_tt)
+							return c * c - 2 * G * m / r;
+							break;
+						case 1: // (g_rr)
+							return -1 / (1 - 2 * G * m / (r * c * c));
+							break;
+						case 2: // (g_θθ)
+							return -r * r;
+							break;
+					}
+				} else {
+					return 0;
+				}
+			}
+			function dg_dx(alpha, beta, gamma, r) {
+				if(gamma == 0 || gamma == 2) { // para um buraco negro estatico, a derivada e zero em relacao ao tempo ou angulo (provavelmente)
+					return 0;
+				} // a partir de agora so derivada em relacao a distancia
+				var h = 1e-8;
+				return (metric_tensor(alpha, beta, r + h) - metric_tensor(alpha, beta, r)) / h;
+			}
+			function christoffel_symbol(gamma, alpha, beta, r) { // assumindo eixos perpendiculares (coordenadas polares tem)
+				return (dg_dx(gamma, alpha, beta, r) + dg_dx(gamma, beta, alpha, r) - dg_dx(alpha, beta, gamma, r)) / (2 * metric_tensor(gamma, gamma, r));
+			}
+			function acceleration(alpha, v, r) { // implementando relatividade
+				var soma = 0;
+				for(var beta = 0;beta <= 2;beta++) {
+					for(var gamma = 0;gamma <= 2;gamma++) {
+						soma -= christoffel_symbol(alpha, beta, gamma, r) * v[beta] * v[gamma];
+					}
+				}
+				return soma;
+			}
+			const c = 1;
+			const G = 1;
+			var m = 1;
+		</script>
+	</body>
+</html>

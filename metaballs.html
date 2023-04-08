@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang = 'pt-BR'>
+	<head>
+		<meta charset = 'utf-8' name = 'viewport' content = 'width = device-width, initial-scale = 1'>
+		<title>meta balls</title>
+		<style>
+			body {
+				margin: 0px;
+				overflow: hidden;
+			}
+		</style>
+	</head>
+	<body>
+		<canvas id = 'canvas' style = 'background-color: #000;'></canvas>
+		<script>
+			class MetaBall {
+				constructor(x, y) {
+					this.x = x || Math.random() * largura;
+					this.y = y || Math.random() * altura;
+					var a = Math.random() * 2 * Math.PI;
+					this.vx = 100 * Math.cos(a);
+					this.vy = 100 * Math.sin(a);
+					this.v = 100;
+				}
+				atrair(meta_balls, dt) {
+					for(var meta_ball of meta_balls) {
+						if(meta_ball != this) {
+							var diffx = meta_ball.x - this.x;
+							var diffy = meta_ball.y - this.y;
+							var distsq = diffx * diffx + diffy * diffy;
+							var acc = 1000000 / distsq;
+							var dist = Math.sqrt(distsq);
+							var accx = acc * diffx / dist;
+							var accy = acc * diffy / dist;
+							this.vx += accx * dt;
+							this.vy += accy * dt;
+						}
+					}
+					this.v = Math.hypot(this.vx, this.vy);
+				}
+				atualizar(dt) {
+					this.vx += 200000 * dt / (this.x * this.x);
+					this.vx -= 200000 * dt / ((largura - this.x) * (largura - this.x));
+					this.vy += 200000 * dt / (this.y * this.y);
+					this.vy -= 200000 * dt / ((altura - this.y) * (altura - this.y));
+					this.v = Math.hypot(this.vx, this.vy);
+					this.x += this.vx * dt;
+					this.y += this.vy * dt;
+				}
+				longe_demais() {
+					return this.x * this.x + this.y * this.y > 100000000; // √100000000 = 10000
+				}
+			}
+			var canvas = document.getElementById('canvas');
+			var pincel = canvas.getContext('2d');
+			var largura = window.innerWidth;
+			var altura = window.innerHeight;
+			canvas.width = largura;
+			canvas.height = altura;
+			var img_data = pincel.createImageData(largura, altura);
+			var data = img_data.data;
+			window.onresize = function() {
+				largura = window.innerWidth;
+				altura = window.innerHeight;
+				img_data = pincel.createImageData(largura, altura);
+				data = img_data.data;
+				canvas.width = Math.max(canvas.width, largura);
+				canvas.height = Math.max(canvas.height, altura);
+				pincel.putImageData(img_data, 0, 0);
+			}
+			var meta_balls = [];
+			for(var i = 0;i < 5;i++) {
+				meta_balls.push(new MetaBall());
+			}
+			var k = 10;
+			var dois_k = 2 * k;
+			var agora = Date.now();
+			function renderizar() {
+				var dt = (Date.now() - agora) / 1000;
+				agora = Date.now();
+				if(dt < 0.1) {
+					pincel.clearRect(0, 0, largura, altura);
+					for(var x = 0;x < largura;x++) {
+						for(var y = 0;y < altura;y++) {
+							var index = 4 * (x + y * largura);
+							var cor = 0;
+							for(var meta_ball of meta_balls) {
+								var diffx = x - meta_ball.x;
+								var diffy = y - meta_ball.y;
+								var dot = (diffx * meta_ball.vx + diffy * meta_ball.vy); // meta_ball.v;
+								cor += 1000 / (diffx * diffx + diffy * diffy);
+							}
+							if(0 < cor && cor < 1) {
+								var cor_7 = cor * cor * cor * cor * cor * cor * cor;
+								var cor_8 = cor_7 * cor;
+								var cor_9 = cor_8 * cor;
+								var cor_10 = cor_9 * cor;
+								var cor_11 = cor_10 * cor;
+								var cor_12 = cor_11 * cor;
+								var cor_13 = cor_12 * cor;
+								cor = 924 * cor_13 - 6006 * cor_12 + 16380 * cor_11 - 24024 * cor_10 + 20020 * cor_9 - 9009 * cor_8 + 1716 * cor_7;
+							}
+							// if(cor > 0.5) {
+							// 	cor = k * (cor - 0.5) / (2 + dois_k * (cor - 0.5)) + 0.5;
+							// } else {
+							// 	cor = k * (cor - 0.5) / (2 - dois_k * (cor - 0.5)) + 0.5;
+							// }
+							cor *= 255;
+							data[index + 0] = cor;
+							data[index + 1] = cor;
+							data[index + 2] = cor;
+							data[index + 3] = 255;
+						}
+					}
+					for(var i = 0;i < 1000;i++) {
+						for(var meta_ball of meta_balls) {
+							meta_ball.atrair(meta_balls, dt / 1000);
+						}
+						for(var meta_ball of meta_balls) {
+							meta_ball.atualizar(dt / 1000);
+						}
+					}
+					for(var i = meta_balls.length - 1;i >= 0;i--) {
+						if(meta_balls[i].longe_demais()) {
+							meta_balls.splice(i, 1);
+						}
+					}
+					pincel.putImageData(img_data, 0, 0);
+				}
+				requestAnimationFrame(renderizar);
+			}
+			requestAnimationFrame(renderizar);
+		</script>
+	</body>
+</html>

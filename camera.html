@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset = 'utf-8'>
+		<title>câmera</title>
+		<style>
+			body {
+				margin: 0px;
+				overflow: hidden;
+			}
+		</style>
+	</head>
+	<body>
+		<video id = 'video'></video>
+		<script>
+			var elemento_video = document.getElementById('video');
+			var largura = window.innerWidth;
+			var altura = window.innerHeight;
+			video.width = largura;
+			video.height = altura;
+			window.onresize = function() {
+				largura = window.innerWidth;
+				altura = window.innerHeight;
+				video.width = largura;
+				video.height = altura;
+			}
+			if('mediaDevices' in navigator && 'getUserMedia' in navigator.mediaDevices) {
+				(async function() {
+					var especificacoes = {
+						// audio: true,
+						video: {
+							width: {
+								min: 1280,
+								ideal: largura,
+								max: 10328,
+							},
+							height: {
+								min: 720,
+								ideal: altura,
+								max: 7760,
+							},
+							framerate: {
+								min: 1,
+								ideal: 30,
+								max: 60
+							}
+						}
+					}
+					try {
+						var video = await navigator.mediaDevices.getUserMedia(especificacoes);
+					} catch(erro) {
+						document.body.removeChild(elemento_video);
+						if(erro instanceof DOMException) {
+							document.body.append(document.createTextNode('permita para continuar'));
+						} else {
+							document.body.append(document.createTextNode('ouve algum erro, tente novamente'));
+						}
+						return;
+					}
+					elemento_video.srcObject = video;
+					elemento_video.play();
+				})();
+			} else {
+				document.body.removeChild(elemento_video);
+				document.body.append(document.createTextNode('infelizmente o seu browser não suporta câmera'));
+			}
+		</script>
+	</body>
+</html>

@@ -1,0 +1,25 @@
+<script>
+	var meses = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
+	var dias = ['domingo', 'segunda-feira', 'terça-feira', 'quarta-feira', 'quinta-feira', 'sexta-feira', 'sabado'];
+	setInterval(function() {
+		var data_atual = new Date();
+		var ano = data_atual.getFullYear();
+		var mes = meses[data_atual.getMonth()] + ' (' + (data_atual.getMonth() + 1) + ')';
+		var diaDoMes = data_atual.getDate();
+		var diaDaSemana = dias[data_atual.getDay()];
+		var hora = data_atual.getHours();
+		var minuto = data_atual.getMinutes();
+		var segundo = data_atual.getSeconds();
+		var milissegundo = data_atual.getMilliseconds();
+		document.body.innerHTML = '';
+		document.write('ano: ' + ano);
+		document.write('<br>mes: ' + mes);
+		document.write('<br>dia do mes: ' + diaDoMes);
+		document.write('<br>dia da semana: ' + diaDaSemana);
+		document.write('<br>hora: ' + hora);
+		document.write('<br>minuto: ' + minuto);
+		document.write('<br>segundo: ' + segundo);
+		document.write('<br>milissegundo: ' + milissegundo);
+		document.write('<br><br>data formatada: ' + diaDoMes + '/' + (data_atual.getMonth() + 1) + '/' + data_atual.getFullYear());
+	}, 1);
+</script>

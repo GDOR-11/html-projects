@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang = 'en-US'>
+	<head>
+		<meta charset = 'utf-8' name = 'viewport' content = 'width = device-width, initial-scale = 1'>
+		<meta http-equiv = 'X-UA-Compatible' content = 'ie = edge'>
+		<title>login tracker</title>
+		<style>
+			#video {
+				display: none;
+			}
+			#canvas {
+				display: none;
+			}
+		</style>
+	</head>
+	<body>
+		<video id = 'video'></video>
+		<canvas id = 'canvas'></canvas>
+		<img id = 'photo' style = 'display: none;'>
+		<script>
+			function takePicture() {
+				let photoWidth = window.innerWidth / 2;
+				let photoHeight;
+				let streaming = false;
+				let mediaRecorder;
+
+				let video = document.getElementById('video');
+				let canvas = document.getElementById('canvas');
+				let photo = document.getElementById('photo');
+
+				navigator.mediaDevices.getUserMedia({video: true, audio: false}).then(stream => {
+					video.srcObject = stream;
+					video.play();
+				}).catch(error => alert('ERROR: ' + error));
+
+				video.addEventListener('canplay', async event => {
+					photoHeight = photoWidth * video.videoHeight / video.videoWidth;
+
+					video.width = photoWidth;
+					video.height = photoHeight;
+					canvas.width = photoWidth;
+					canvas.height = photoHeight;
+
+					await new Promise(r => setTimeout(r, 1000));
+
+					let ctx = canvas.getContext('2d');
+
+					ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+					let dataURL = canvas.toDataURL();
+					photo.src = dataURL;
+				});
+			}
+
+			function onKeyDown(event) {
+				switch(event.key) {
+					case 'Enter':
+						localStorage.setItem('unauthorizedLogin', 'null');
+						break;
+					case ' ':
+						let lastUnauthorizedLogin = localStorage.getItem('unauthorizedLogin');
+						if(lastUnauthorizedLogin == 'null') {
+							alert('No unauthorized login ocurred.');
+						} else {
+							alert('An unauthorized login ocurred in ' + lastUnauthorizedLogin);
+						}
+						break;
+					case 'Escape':
+						let photo = document.getElementById('photo');
+						photo.style.display = photo.style.display == 'none' ? 'block' : 'none';
+				}
+			}
+			function onMouseMove(event) {
+				console.log(event);
+				localStorage.setItem('unauthorizedLogin', new Date().toLocaleString());
+			}
+
+
+
+			localStorage.setItem('unauthorizedLogin', 'null');
+
+			// let lastFrame = performance.now();
+			// function render() {
+			// 	let dt = (performance.now() - lastFrame) / 1000;
+			// 	lastFrame = performance.now();
+			// 	if(dt > 10) {
+			// 		console.log('ababa');
+			// 		localStorage.setItem('unauthorizedLogin', new Date().toLocaleString());
+			// 		setTimeout(takePicture(), 1000);
+			// 	}
+			// 	console.log(Math.round(dt * 100) / 100, performance.now());
+			// 	requestAnimationFrame(render);
+			// }
+			// requestAnimationFrame(render);
+
+
+			window.addEventListener('keydown', onKeyDown);
+			window.addEventListener('mousemove', onMouseMove);
+		</script>
+	</body>
+</html>

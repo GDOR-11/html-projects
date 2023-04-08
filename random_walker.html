@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset = 'UTF-8'>
+		<title>random walker</title>
+		<style>
+			body {
+				margin: 0px;
+				overflow: hidden;
+			}
+			.preto {
+				background-color: #000;
+			}
+		</style>
+	</head>
+	<body>
+		<canvas id = 'canvas' class = 'preto'></canvas>
+		<script>
+			class Particula {
+				constructor(x, y) {
+					this.cor = 'rgba(' + Math.random() * 255 + ', ' + Math.random() * 255 + ', ' + Math.random() * 255 + ', 0.1)';
+					this.pos = {x: x, y: y};
+					this.pos_anterior = {x: x, y: y};
+				}
+				mover(distancia) {
+					this.pos_anterior = {x: this.pos.x, y: this.pos.y};
+					// this.pos.x += distancia * Math.cos(Math.random() * 2 * Math.PI);
+					// this.pos.y += distancia * Math.sin(Math.random() * 2 * Math.PI);
+					this.pos.x += distancia * Math.floor(Math.random() * 3 - 1);
+					this.pos.y += distancia * Math.floor(Math.random() * 3 - 1);
+				}
+				desenhar() {
+					pincel.strokeStyle = this.cor;
+					pincel.lineWidth = 1;
+					pincel.lineCap = 'round';
+					pincel.beginPath();
+					pincel.moveTo(this.pos_anterior.x, this.pos_anterior.y);
+					pincel.lineTo(this.pos.x, this.pos.y);
+					pincel.stroke();
+				}
+			}
+			var canvas = document.getElementById('canvas');
+			var pincel = canvas.getContext('2d');
+			var largura = window.innerWidth;
+			var altura = window.innerHeight;
+			canvas.width = largura;
+			canvas.height = altura;
+			var particulas = [];
+			var frame_atual = 0;
+			setInterval(function() {
+				if(frame_atual % 100 == 0) {
+					particulas.push(new Particula(largura / 2, altura / 2));
+				}
+				for(var i = 0;i < 2048;i++) {
+					for(var j = particulas.length - 1;j >= 0;j--) {
+						particulas[j].mover(1);
+						particulas[j].desenhar();
+						if(particulas[j].pos.x < 0 || particulas[j].pos.x > largura || particulas[j].pos.y < 0 || particulas[j].pos.y > altura) {
+							particulas.splice(j, 1);
+						}
+					}
+				}
+				frame_atual++;
+			}, 1);
+		</script>
+	</body>
+</html>

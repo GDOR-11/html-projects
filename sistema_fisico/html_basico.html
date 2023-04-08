@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang = 'pt-BR'>
+	<head>
+		<meta charset = 'utf-8' name = 'viewport' content = 'width = device-width, initial-scale = 1'>
+		<meta http-equiv = 'X-UA-Compatible' content = 'ie = edge'>
+		<title>titulo</title>
+		<script>
+			alert('alterar o título');
+		</script>
+		<style>
+			body {
+				margin: 0px;
+				overflow: hidden;
+			}
+		</style>
+		<script src = 'Box2d.min.js'></script>
+	</head>
+	<body>
+		<canvas id = 'canvas'></canvas>
+		<script>
+			var canvas = document.getElementById('canvas');
+			var pincel = canvas.getContext('2d');
+			var largura_canvas = window.innerWidth;
+			var altura_canvas = window.innerHeight;
+			canvas.width = largura_canvas;
+			canvas.height = altura_canvas;
+
+			var b2Vec2 = Box2D.Common.Math.b2Vec2;
+			var b2BodyDef = Box2D.Dynamics.b2BodyDef;
+			var b2Body = Box2D.Dynamics.b2Body;
+			var b2FixtureDef = Box2D.Dynamics.b2FixtureDef;
+			var b2Fixture = Box2D.Dynamics.b2Fixture;
+			var b2World = Box2D.Dynamics.b2World;
+			var b2MassData = Box2D.Collision.Shapes.b2MassData;
+			var b2PolygonShape = Box2D.Collision.Shapes.b2PolygonShape;
+			var b2CircleShape = Box2D.Collision.Shapes.b2CircleShape;
+			var b2DebugDraw = Box2D.Dynamics.b2DebugDraw;
+
+			var escala = 30;
+			var largura = largura_canvas / escala;
+			var altura = altura_canvas / escala;
+
+			var mundo = new b2World(new b2Vec2(0, 9.80665), true);
+			var bodyDef = new b2BodyDef();
+			var fixDef = new b2FixtureDef();
+
+			// bodyDef.type = b2Body.b2_[    ...    ]Body;
+			// bodyDef.position.Set(x, y);
+			// fixDef.shape = new b2[    ...    ]Shape();
+			// se for b2PolygonShape:
+			//		fixDef.shape.SetAs[    ...    ]([    argumentos    ]);
+			// [    fixDef ou bodyDef    ].[    friction, density, etc...    ] = [    valor    ];
+			// var objeto = mundo.CreateBody(bodyDef).CreateFixture(fixDef);
+
+			function renderizar() {
+				mundo.Step(1 / 60, 10, 10);
+				pincel.clearRect(0, 0, largura_canvas, altura_canvas);
+				// desenhar objetos
+				mundo.ClearForces();
+				// destruir objetos usando
+				// mundo.DestroyBody(objeto.m_body);
+				requestAnimationFrame(renderizar);
+			}
+			requestAnimationFrame(renderizar);
+		</script>
+	</body>
+</html>

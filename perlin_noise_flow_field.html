@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang = 'pt-BR'>
+	<head>
+		<meta charset = 'utf-8' name = 'viewport' content = 'width = device-width, initial-scale = 1'>
+		<title>perlin noise flow field</title>
+		<style>
+			body {
+				margin: 0px;
+				overflow: hidden;
+			}
+			canvas {
+				background-color: #000;
+			}
+		</style>
+		<script src = 'https://unpkg.com/noisejs@2.1.0/index.js'></script>
+	</head>
+	<body>
+		<canvas id = 'canvas'></canvas>
+		<script>
+			class Particula {
+				constructor(x, y) {
+					this.pos = {x, y};
+					this.pos_anterior = {x: this.pos.x, y: this.pos.y};
+					this.v = {x: 0, y: 0};
+				}
+				desenhar() {
+					pincel.strokeStyle = 'rgba(0, 0, 255, 0.04)';
+					pincel.beginPath();
+					pincel.moveTo(this.pos_anterior.x, this.pos_anterior.y);
+					pincel.lineTo(this.pos.x, this.pos.y);
+					pincel.stroke();
+				}
+				aplicar_forca(fx, fy, dt) {
+					this.v.x += fx * dt;
+					this.v.y += fy * dt;
+					var v = Math.hypot(this.v.x, this.v.y);
+					this.v.x *= 100 / v;
+					this.v.y *= 100 / v;
+				}
+				atualizar(dt) {
+					this.pos_anterior.x = this.pos.x;
+					this.pos_anterior.y = this.pos.y;
+					this.pos.x += this.v.x * dt;
+					this.pos.y += this.v.y * dt;
+				}
+			}
+			var canvas = document.getElementById('canvas');
+			var pincel = canvas.getContext('2d');
+			var largura = window.innerWidth;
+			var altura = window.innerHeight;
+			canvas.width = largura;
+			canvas.height = altura;
+			window.onresize = function() {
+				largura = window.innerWidth;
+				altura = window.innerHeight;
+				canvas.width = largura;
+				canvas.height = altura;
+			}
+			var particulas = [];
+			var espacamento = 10;
+			for(var x = 100;x < 300;x += 2) {
+				for(var y = altura / 2 - 100;y < altura / 2 + 100;y += 2) {
+					particulas.push(new Particula(x, y));
+				}
+			}
+			// for(var x = 0;x < largura;x += espacamento) {
+			// 	for(var y = 0;y < altura;y += espacamento) {
+			// 		particulas.push(new Particula(x, y));
+			// 	}
+			// }
+			var noise = new Noise(Math.random());
+			var agora = Date.now();
+			function renderizar() {
+				var dt = (Date.now() - agora) / 1000;
+				agora = Date.now();
+				if(dt < 0.1) {
+					// pincel.fillStyle = 'rgba(0, 0, 0, 0.0075)';
+					// pincel.fillRect(0, 0, largura, altura);
+					for(var particula of particulas) {
+						var perlin_noise = noise.perlin2(particula.pos.x / 100, particula.pos.y / 100);
+						particula.aplicar_forca(10 * Math.cos(1 * Math.PI * perlin_noise), 10 * Math.sin(1 * Math.PI * perlin_noise), dt);
+						particula.atualizar(dt);
+						particula.desenhar();
+					}
+				}
+				requestAnimationFrame(renderizar);
+			}
+			requestAnimationFrame(renderizar);
+		</script>
+	</body>
+</html>

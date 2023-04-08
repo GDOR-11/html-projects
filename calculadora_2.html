@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang = 'pt-BR'>
+	<head>
+		<meta charset = 'utf-8' name = 'viewport' content = 'width = device-width, initial-scale = 1'>
+		<title>calculadora</title>
+	</head>
+	<body>
+		<script>
+			const isBigInteger = function(x) {
+				return x != null && typeof x == 'object' && x.constructor.name == 'BigInteger';
+			}
+			const BigInteger = class {
+				constructor(num, sign = '+') {
+					if(typeof num == 'string') {
+						if(num[0] == '-') {
+							this.sign = '-';
+							num = num.slice(1);
+						} else {
+							this.sign = '+';
+						}
+						num += '.';
+						var digits_num = num.indexOf('.');
+						var decimals_num = num.length - digits_num - 2;
+						num = '0'.repeat(max_precision - digits_num) + num.replaceAll('.', '') + '0'.repeat(min_precision - decimals_num);
+						this.value = new Uint8ClampedArray(num.split(''));
+					} else {
+						this.sign = sign;
+						this.value = num;
+					}
+				}
+				toCheapString() {
+					var str = this.sign + this.value.join('');
+					return str.slice(0, max_precision + 1) + '.' + str.slice(max_precision + 1);
+				}
+				toString() {
+					var str = this.toCheapString();
+					str = str.slice(str.slice(1).match(/(?!0)/).index + 1);
+					if(str[0] == '.') {
+						str = '0' + str;
+					}
+					if(this.sign == '-') {
+						str = '-' + str;
+					}
+					if(str[str.length - 1] == '0') {
+						var matches = [...str.matchAll(/(?!0).0/g)];
+						str = str.slice(0, matches[matches.length - 1].index + 1);
+						if(str[str.length - 1] == '.') {
+							str += '0';
+						}
+					}
+					return str;
+				}
+				abs() {
+					return new BigInteger(this.toCheapString().slice(1));
+				}
+				negate() {
+					return new BigInteger(this.value, '-');
+				}
+				add(num) {
+					if(this.sign == '-') {
+						if(num.sign == '-') {
+							return this.abs().add(num.abs()).negate();
+						}
+						return num.sub(y, this.abs());
+					}
+					if(num.sign == '-') {
+						return this.sub(x, y.abs());
+					}
+					// if(digits_x != x.length || digits_y != x.length) {
+					// 	var sum = x.length - digits_x > y.length - digits_y ? x.slice(y.length, x.length) : y.slice(x.length, y.length);
+					// } else {
+					// 	var sum = '';
+					// }
+					var sum = new Uint8ClampedArray(total_precision);
+					var remainder = 0;
+					for(var i = total_precision - 1;i >= 0;i--) {
+						var digit_sum = Number(this.value[i]) + Number(num.value[i]) + remainder;
+						remainder = digit_sum >= 10 ? 1 : 0;
+						sum[i] = digit_sum % 10;
+					}
+					return new BigInteger(sum);
+				}
+				sub(num) {
+					if(this.sign == '-') {
+						if(num.sign == '-') {
+							return num.abs().sub(this.abs());
+						}
+						return this.abs().add(num).negate();
+					}
+					if(num.sign == '-') {
+						return this.add(num.abs());
+					}
+					if(num.greaterThan(this)) {
+						return num.sub(this).negate();
+					}
+					var inv_x = '';
+					var inv_y = '';
+					for(var i = Math.max(x.length, y.length);i >= 0;i--) {
+						inv_x += x[i] || '';
+						inv_y += y[i] || '';
+					}
+					var result = '';
+					var remainder = 0;
+					for(var i = 0;i < Math.max(x.length, y.length);i++) {
+						var xi = Number(inv_x[i]);
+						var yi = Number(inv_y[i] || 0);
+						if(isNaN(xi)) {
+							result = '.' + result;
+							continue;
+						}
+						if(xi - remainder < yi) {
+							result = 10 + xi - yi - remainder + result;
+							remainder = 1;
+						} else {
+							result = xi - yi - remainder + result;
+							remainder = 0;
+						}
+					}
+					if(result[0] == '0') {
+						result = result.slice((result.match(/0(?!0)/) || {index: -1}).index + 1);
+					}
+					if(result[0] == '.') {
+						result = '0' + result;
+					}
+					return result;
+				}
+				greaterThan(num) {
+					for(var i = 0;i < total_precision;i++) {
+						if(this.value[i] > num.value[i]) {
+							return true;
+						} else if(this.value[i] < num.value[i]) {
+							return false;
+						}
+					}
+					return false;
+				}
+			}
+			var max_precision = 100;
+			var min_precision = 100;
+			var total_precision = max_precision + min_precision;
+		</script>
+	</body>
+</html>

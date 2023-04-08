@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang = 'pt-BR'>
+	<head>
+		<meta charset = 'utf-8' name = 'viewport' content = 'width = device-width, initial-scale = 1'>
+		<title>sistema físico</title>
+		<style>
+			body {
+				margin: 0px;
+				overflow: hidden;
+			}
+		</style>
+	</head>
+	<body>
+		<canvas id = 'canvas' style = 'background-color: #000;'></canvas>
+		<script>
+			class Vec2 {
+				#x = 0;
+				#y = 0;
+				#length = 0;
+				constructor(x, y) {
+					this.#x = x;
+					this.#y = y;
+					this.#length = Math.hypot(this.#x, this.#y);
+				}
+				add(v) {
+					return new Vec2(this.#x + v.x, this.#y + v.y);
+				}
+				sub(v) {
+					return new Vec2(this.#x - v.x, this.#y - v.y);
+				}
+				mult(n) {
+					return new Vec2(this.#x * n, this.#y * n);
+				}
+				div(n) {
+					return new Vec2(this.#x / n, this.#y / n);
+				}
+				normalize() {
+					return new Vec2(this.#x / this.#length, this.#y / this.#length);
+				}
+				clone() {
+					return new Vec2(this.#x, this.#y);
+				}
+				project(v) {
+					var l = this.dot(v) / v.length;
+					v = v.clone();
+					v.length = l;
+					return v;
+				}
+				dot(v) {
+					return this.#x * v.x + this.#y * v.y;
+				}
+				get x() {
+					return this.#x;
+				}
+				get y() {
+					return this.#y;
+				}
+				get length() {
+					return this.#length;
+				}
+				set x(x) {
+					this.#x = x;
+					this.#length = Math.hypot(this.#x, this.#y);
+				}
+				set y(y) {
+					this.#y = y;
+					this.#length = Math.hypot(this.#x, this.#y);
+				}
+				set length(l) {
+					this.#x *= l / this.#length;
+					this.#y *= l / this.#length;
+					this.#length = l;
+				}
+			}
+			class Poligono {
+				constructor(vertices, pos, massa) {
+					this.pos = pos;
+					this.a = 0;
+					this.m = massa;
+					this.vertices = vertices;
+					this.v = new Vec2(0, 0);
+					this.a_v = 1;
+				}
+				atualizar(dt) {
+					this.v.y += g * dt;
+					this.pos = this.pos.add(this.v.mult(dt));
+					this.a += this.a_v * dt;
+					for(var vertice of this.vertices) {
+						var v = new Vec2(this.v.x + this.a_v * vertice.y, this.v.y - this.a_v * vertice.x);
+						var diff = vertice.sub(this.pos);
+						if(vertice.x + this.pos.x <= 0 || vertice.x + this.pos.x >= largura) {
+							v.x *= -1;
+							var impulso_angulo = v.project(v.sub(this.v));
+							var impulso = v.sub(impulso_angulo);
+							this.v = impulso;
+							this.a_v = impulso_angulo.length * (Math.sign(impulso_angulo.dot(new Vec2(diff.y, -diff.x))));
+						}
+						if(vertice.y + this.pos.y <= 0 || vertice.y + this.pos.y >= altura) {
+							v.y *= -1;
+							var impulso_angulo = v.project(v.sub(this.v));
+							var impulso = v.sub(impulso_angulo);
+							this.v = impulso;
+							this.a_v = impulso_angulo.length * (Math.sign(impulso_angulo.dot(new Vec2(diff.y, -diff.x))));
+						}
+					}
+				}
+				desenhar() {
+					var ultimo = this.vertices[this.vertices.length - 1];
+					pincel.save();
+					pincel.translate(this.pos.x, this.pos.y);
+					pincel.rotate(this.a);
+					pincel.fillStyle = 'white';
+					pincel.lineWidth = 1;
+					pincel.beginPath();
+					pincel.moveTo(ultimo.x, ultimo.y);
+					for(var vertice of this.vertices) {
+						pincel.lineTo(vertice.x, vertice.y);
+					}
+					pincel.fill();
+					pincel.restore();
+				}
+			}
+			function Vec2Array(arr) {
+				var vec2array = [];
+				for(var i = 0;i < arr.length;i += 2) {
+					vec2array.push(new Vec2(arr[i], arr[i + 1]));
+				}
+				return vec2array;
+			}
+			var canvas = document.getElementById('canvas');
+			var pincel = canvas.getContext('2d');
+			var largura = window.innerWidth;
+			var altura = window.innerHeight;
+			canvas.width = largura;
+			canvas.height = altura;
+			window.onresize = function() {
+				largura = window.innerWidth;
+				altura = window.innerHeight;
+				var img_data = pincel.getImageData(0, 0, canvas.width, canvas.height);
+				canvas.width = Math.max(canvas.width, largura);
+				canvas.height = Math.max(canvas.height, altura);
+				pincel.putImageData(img_data, 0, 0);
+			}
+			var poligono = new Poligono(Vec2Array([-10, -10, 10, -10, 0, 10]), new Vec2(largura / 2, altura - 100), 1);
+			var g = 100;
+			var dt = 1 / 60;
+			function renderizar() {
+				pincel.clearRect(0, 0, largura, altura);
+				poligono.desenhar();
+				poligono.atualizar(dt);
+				requestAnimationFrame(renderizar);
+			}
+			requestAnimationFrame(renderizar);
+		</script>
+	</body>
+</html>

@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang = 'pt-BR'>
+	<head>
+		<meta charset = 'utf-8' name = 'viewport' content = 'width = device-width, initial-scale = 1'>
+		<title>números aleatórios</title>
+	</head>
+	<body>
+		<p id = 'funcao_aleatoria_1'>s ^= 2747636419<br>s *= 2654435769<br>s ^= s >> 16<br>s *= 2654435769<br>s /= 5700357405939370000</p>
+		<canvas id = 'canvas' style = 'background-color: #000;' width = 500 height = 250></canvas>
+		<iframe src='https://www.random.org/widgets/integers/iframe.php?title=True+Random+Number+Generator&amp;buttontxt=Generate&amp;width=160&amp;height=235&amp;border=on&amp;bgcolor=%23FFFFFF&amp;txtcolor=%23777777&amp;altbgcolor=%23CCCCFF&amp;alttxtcolor=%23000000&amp;defaultmin=0&amp;defaultmax=100&amp;fixed=off' frameborder='0' style='min-height:235px;'></iframe>
+		<script>
+			function random(seed) {
+				seed ^= 2747636419;
+				seed *= 2654435769;
+				seed ^= seed >> 16;
+				seed *= 2654435769;
+				return seed / 5700357405939370000;
+			}
+			function smoothstep(x, k) {
+				return 1 / (1 + Math.exp(-k * (x - 0.5)));
+			}
+			function normal_random(min, max, skew) {
+			    var u = 0, v = 0;
+			    while(u === 0) u = Math.random();
+			    while(v === 0) v = Math.random();
+			    let num = Math.sqrt( -2.0 * Math.log( u ) ) * Math.cos( 2.0 * Math.PI * v );
+
+			    num = num / 10.0 + 0.5;
+			    if (num > 1 || num < 0) num = normal_random(min, max, skew);
+			    num = smoothstep(num, skew);
+			    num *= max - min;
+			    num += min;
+			    return num;
+			}
+			var pontos = [];
+			for(var i = 0;i < 2000;i++) {
+				pontos.push(normal_random(0, largura, 7.5), normal_random(0, altura, 7.5));
+			}
+			var canvas = document.getElementById('canvas');
+			var pincel = canvas.getContext('2d');
+			var largura = canvas.width;
+			var altura = canvas.height;
+			var seed = Date.now();
+			var numeros = [...Array(Math.floor(1000)).keys()].map(i => Math.floor(random(i + seed) * 10) / 10);
+			pincel.fillStyle = 'blue';
+			for(var i = 0;i <= 1;i = (i * 10 + 1) / 10) {
+				var quantidade = numeros.filter(n => n == i).length;
+				pincel.fillRect(i * largura, altura - altura * quantidade / numeros.length, largura / 10, altura * quantidade / numeros.length);
+			}
+		</script>
+	</body>
+</html>

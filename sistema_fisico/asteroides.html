@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang = 'pt-BR'>
+	<head>
+		<meta charset = 'utf-8' name = 'viewport' content = 'width = device-width, initial-scale = 1'>
+		<title>asteróides</title>
+		<style>
+			body {
+				margin: 0px;
+				overflow: hidden;
+			}
+			canvas {
+				background-color: #000;
+			}
+		</style>
+		<script src = 'Box2d.min.js'></script>
+	</head>
+	<body>
+		<canvas id = 'canvas'></canvas>
+		<script>
+			// classe para renderizar e atualizar poligonos
+			class Corpo {
+				constructor() {}
+				desenhar() {
+					pincel.strokeStyle = 'white';
+					pincel.lineJoin = 'miter';
+					pincel.lineWidth = 1;
+					pincel.save();
+					pincel.translate(this.x * escala, this.y * escala);
+					pincel.rotate(this.a);
+					pincel.beginPath();
+					pincel.moveTo((this.vertices[0].x) * escala, (this.vertices[0].y) * escala);
+					for(var i = 1;i < this.vertices.length;i++) {
+						pincel.lineTo((this.vertices[i].x) * escala, (this.vertices[i].y) * escala);
+					}
+					pincel.lineTo((this.vertices[0].x) * escala, (this.vertices[0].y) * escala);
+					pincel.stroke();
+					pincel.restore();
+				}
+				atualizar() {
+					var pos = this.corpo.m_body.m_xf.position;
+					this.corpo.m_body.SetPosition(new b2Vec2(mod(pos.x + this.r, largura + this.r * 2) - this.r, mod(pos.y + this.r, altura + this.r * 2) - this.r));
+					this.x = pos.x;
+					this.y = pos.y;
+					this.a = this.corpo.m_body.m_sweep.a;
+				}
+			}
+			class Tiro {
+				constructor(pos, a) {
+					this.pos = pos;
+					this.v = new b2Vec2(10 * Math.sin(a), -10 * Math.cos(a));
+				}
+				desenhar() {
+					pincel.fillStyle = 'white';
+					pincel.lineWidth = 1;
+					pincel.lineJoin = 'round';
+					pincel.strokeRect(this.pos.x * escala, this.pos.y * escala, 1, 1);
+				}
+				atualizar(tiros, dt) {
+					this.pos.x += this.v.x * dt;
+					this.pos.y += this.v.y * dt;
+					if(this.pos.x < -raio_maximo || this.pos.x > largura + raio_maximo || this.pos.y < -raio_maximo || this.pos.y > altura + raio_maximo) {
+						tiros.splice(tiros.indexOf(this), 1);
+					}
+				}
+				checar(asteroides, tiros) {
+					for(var asteroide of asteroides) {
+						if(asteroide.corpo.TestPoint(this.pos)) {
+							asteroide.integridade--;
+							if(asteroide.integridade <= 0) {
+								asteroide.destruir(asteroides);
+							}
+							tiros.splice(tiros.indexOf(this), 1);
+							break;
+						}
+					}
+				}
+			}
+			// herdando desenhar e atualizar de Corpo
+			class Jogador extends Corpo {
+				constructor() {
+					super();
+					this.x = largura / 2;
+					this.y = altura / 2;
+					this.a = 0;
+					bodyDef.type = b2Body.b2_dynamicBody;
+					bodyDef.position.Set(this.x, this.y);
+					fixDef.shape = new b2PolygonShape();
+					this.r = 0.4;
+					this.vertices = [new b2Vec2(0, -this.r), new b2Vec2(this.r / 2, this.r / 2), new b2Vec2(-this.r / 2, this.r / 2)];
+					fixDef.shape.SetAsArray(this.vertices, this.vertices.length);
+					fixDef.density = 1;
+					fixDef.friction = 1;
+					fixDef.restitution = 0;
+					this.corpo = mundo.CreateBody(bodyDef).CreateFixture(fixDef);
+					this.corpo.m_body.m_angularDamping = 1.1;
+					this.corpo.m_userData = this;
+					this.tiros = [];
+				}
+				acelerar(f) {
+					this.corpo.m_body.ApplyForce(new b2Vec2(f * Math.sin(this.a), f * -Math.cos(this.a)), this.corpo.m_body.GetWorldCenter());
+				}
+				girar(f) {
+					var centro = this.corpo.m_body.GetWorldCenter();
+					this.corpo.m_body.ApplyForce(new b2Vec2(f, 0), new b2Vec2(centro.x, centro.y + 0.01));
+					this.corpo.m_body.ApplyForce(new b2Vec2(-f, 0), new b2Vec2(centro.x, centro.y - 0.01));
+				}
+				desacelerar_giro() {
+					var centro = this.corpo.m_body.GetWorldCenter();
+					var f = this.corpo.m_body.m_angularVelocity / 10;
+					this.corpo.m_body.ApplyForce(new b2Vec2(f, 0), new b2Vec2(centro.x, centro.y + 0.01));
+					this.corpo.m_body.ApplyForce(new b2Vec2(-f, 0), new b2Vec2(centro.x, centro.y - 0.01));
+				}
+				desenhar() {
+					super.desenhar();
+					for(var tiro of this.tiros) {
+						tiro.desenhar();
+					}
+				}
+				atualizar(dasteroides, dt) {
+					super.atualizar();
+					for(var i = this.tiros.length - 1;i >= 0;i--) {
+						var tiro = this.tiros[i];
+						tiro.atualizar(this.tiros, dt);
+						if(tiro == this.tiros[i]) {
+							this.tiros[i].checar(asteroides, this.tiros);
+						}
+					}
+				}
+				atirar() {
+					this.tiros.push(new Tiro(new b2Vec2(this.x + this.r * Math.sin(this.a), this.y - this.r * Math.cos(this.a)), this.a));
+					this.acelerar(-2);
+				}
+			}
+			// herdando desenhar e atualizar de Corpo
+			class Asteroide extends Corpo {
+				constructor(x, y, vx, vy, r) {
+					super();
+					this.r = r || raio_maximo;
+					this.integridade = Math.floor(4 * (this.r - raio_minimo) / (raio_maximo - raio_minimo) + 1);
+					if(x != undefined && y != undefined) {
+						this.x = x;
+						this.y = y;
+					} else {
+						var parede = Math.floor(Math.random() * 4);
+						switch(parede) {
+							case 0:
+								this.x = -this.r;
+								this.y = Math.random() * altura;
+								break;
+							case 1:
+								this.x = Math.random() * largura;
+								this.y = -this.r;
+								break;
+							case 2:
+								this.x = largura + this.r;
+								this.y = Math.random() * altura;
+								break;
+							case 3:
+								this.x = Math.random() * largura;
+								this.y = altura + this.r;
+								break;
+						}
+					}
+					this.a = 0;
+					bodyDef.type = b2Body.b2_dynamicBody;
+					bodyDef.position.Set(this.x, this.y);
+					fixDef.shape = new b2PolygonShape();
+					this.vertices = [];
+					for(var a = 0;a < 2 * Math.PI;a += Math.PI / 5) {
+						this.vertices.push(new b2Vec2((1 - Math.random() / 5) * this.r * Math.cos(a), (1 - Math.random() / 5) * this.r * Math.sin(a)));
+					}
+					fixDef.shape.SetAsArray(this.vertices, this.vertices.length);
+					fixDef.density = 1;
+					fixDef.friction = 0;
+					fixDef.restitution = 1;
+					this.corpo = mundo.CreateBody(bodyDef).CreateFixture(fixDef);
+					var a = Math.random() * 2 * Math.PI;
+					var v = Math.random() * 2;
+					this.corpo.m_body.SetLinearVelocity(new b2Vec2(vx || v * Math.cos(a), vy || v * Math.sin(a)));
+					this.corpo.m_body.SetAngularVelocity(Math.random() * 5);
+				}
+				destruir(asteroides) {
+					asteroides.splice(asteroides.indexOf(this), 1);
+					mundo.DestroyBody(this.corpo.m_body);
+					if(this.r - raio_minimo > 1e-10) { // para evitar erros de precisão, que são geralmente na ordem de 1e-16
+						for(var i = 0;i < 2;i++) {
+							var v = this.corpo.m_body.m_linearVelocity;
+							asteroides.push(new Asteroide(this.x, this.y, v.x, v.y, this.r * 0.8));
+						}
+					}
+					if(vivo) {
+						pontos += 10 * this.r / raio_maximo;
+				    }
+				}
+			}
+			function recomecar() {
+				vivo = true;
+				mundo = new b2World(new b2Vec2(0, 0), true);
+				jogador = new Jogador();
+				asteroides = [];
+				for(var i = 0;i < 10;i++) {
+					asteroides.push(new Asteroide());
+				}
+				pontos = 0;
+			}
+			function mod(x, y) {
+				return x - y * Math.floor(x / y);
+			}
+			if(localStorage.getItem('recorde3') == null) {
+				localStorage.setItem('recorde3', 0);
+			}
+
+			var canvas = document.getElementById('canvas');
+			var pincel = canvas.getContext('2d');
+			var largura_canvas = window.innerWidth;
+			var altura_canvas = window.innerHeight;
+			canvas.width = largura_canvas;
+			canvas.height = altura_canvas;
+			window.onresize = function() {
+				largura_canvas = window.innerWidth;
+				altura_canvas = window.innerHeight;
+				canvas.width = largura_canvas;
+				canvas.height = altura_canvas;
+				largura = largura_canvas / escala;
+				altura = altura_canvas / escala;
+			}
+
+			var b2Vec2 = Box2D.Common.Math.b2Vec2;
+			var b2BodyDef = Box2D.Dynamics.b2BodyDef;
+			var b2Body = Box2D.Dynamics.b2Body;
+			var b2FixtureDef = Box2D.Dynamics.b2FixtureDef;
+			var b2Fixture = Box2D.Dynamics.b2Fixture;
+			var b2World = Box2D.Dynamics.b2World;
+			var b2MassData = Box2D.Collision.Shapes.b2MassData;
+			var b2PolygonShape = Box2D.Collision.Shapes.b2PolygonShape;
+			var b2CircleShape = Box2D.Collision.Shapes.b2CircleShape;
+			var b2DebugDraw = Box2D.Dynamics.b2DebugDraw;
+			var b2ContactListener = Box2D.Dynamics.b2ContactListener;
+
+			b2ContactListener.prototype.BeginContact = function(event) {
+				if(event.m_fixtureA.m_userData == jogador || event.m_fixtureB.m_userData == jogador) {
+					vivo = false;
+					if(pontos > localStorage.getItem('recorde3')) {
+						localStorage.setItem('recorde3', pontos);
+					}
+				}
+			}
+
+			var escala = 30;
+			var largura = largura_canvas / escala;
+			var altura = altura_canvas / escala;
+
+			var mundo = new b2World(new b2Vec2(0, 0), true);
+			var bodyDef = new b2BodyDef();
+			var fixDef = new b2FixtureDef();
+
+			var raio_maximo = 2;
+			var raio_minimo = 1.024;
+
+			var asteroides = [];
+			for(var i = 0;i < 10;i++) {
+				asteroides.push(new Asteroide());
+			}
+			var jogador = new Jogador();
+
+			var imagem = new Image();
+			imagem.src = 'https://www.iconsdb.com/icons/preview/white/refresh-2-xxl.png';
+			imagem.onload = renderizar;
+
+			var vivo = true;
+			var pontos = 0;
+
+			var dt = 1 / 60;
+			var iter = 10;
+			var frameCount = 0;
+			var frame = 0;
+
+			function renderizar() {
+				if(vivo) {
+					if(teclas_pressionadas.includes('Space')) {
+						if(!atirou) {
+							frame = frameCount % 10;
+							atirou = true;
+						}
+						if(frameCount % 10 == frame) {
+							jogador.atirar();
+						}
+					} else {
+						atirou = false;
+					}
+					if(teclas_pressionadas.includes('ArrowUp') || teclas_pressionadas.includes('KeyW')) {
+						jogador.acelerar(1);
+					}
+					var giro = 0;
+					if(teclas_pressionadas.includes('ArrowLeft') || teclas_pressionadas.includes('KeyA')) {
+						giro++;
+					}
+					if(teclas_pressionadas.includes('ArrowRight') || teclas_pressionadas.includes('KeyD')) {
+						giro--;
+					}
+					jogador.girar(giro);
+					if(Math.random() < 0.00175446771327) { // 10% de chance a cada segundo, para 20% usar 0.00371215205328
+						asteroides.push(new Asteroide());
+					}
+				}
+				for(var i = 0;i < iter;i++) {
+					mundo.Step(dt / iter, 1, 1);
+				}
+				pincel.clearRect(0, 0, largura_canvas, altura_canvas);
+				pincel.strokeStyle = 'white';
+				for(var asteroide of asteroides) {
+					asteroide.atualizar();
+					asteroide.desenhar();
+				}
+				jogador.atualizar(asteroides, dt);
+				jogador.desenhar();
+				mundo.ClearForces();
+				if(!vivo) {
+					pincel.fillStyle = 'rgba(0, 0, 0, 0.5)';
+					pincel.fillRect(0, 0, largura_canvas, altura_canvas);
+					pincel.font = '100px arial';
+					pincel.textAlign = 'center';
+					pincel.fillStyle = 'white';
+					pincel.fillText('VOCÊ PERDEU!', largura_canvas / 2, altura_canvas / 2);
+					if(Math.floor(pontos) == Math.floor(localStorage.getItem('recorde3'))) {
+						pincel.font = '35px arial';
+						pincel.fillText('novo recorde!', largura_canvas / 2, altura_canvas / 2 + 37.5);
+						pincel.font = '25px arial';
+						pincel.fillText(`você conseguiu ${Math.floor(pontos)} pontos`, largura_canvas / 2, altura_canvas / 2 + 70);
+					} else {
+						pincel.font = '25px arial';
+						pincel.fillText(`você conseguiu ${Math.floor(pontos)} pontos`, largura_canvas / 2, altura_canvas / 2 + 35);
+						pincel.fillText(`o seu recorde é ${Math.floor(localStorage.getItem('recorde3'))} pontos`, largura_canvas / 2, altura_canvas / 2 + 70);
+					}
+					pincel.drawImage(imagem, largura_canvas / 2 - 50, altura_canvas / 2 + 105, 100, 100);
+				} else {
+					pincel.font = '25px arial';
+					pincel.textAlign = 'center';
+					pincel.fillStyle = 'white'
+					pincel.fillText(`${Math.floor(pontos)} pontos`, largura_canvas / 2, 50);
+					pontos += 10 * dt;
+				}
+				frameCount++;
+				requestAnimationFrame(renderizar);
+			}
+
+			var teclas_pressionadas = [];
+			document.onkeydown = function(event) {
+				if(!teclas_pressionadas.includes(event.code)) {
+					teclas_pressionadas.push(event.code);
+				}
+				if(event.code == 'KeyR') {
+					recomecar();
+				}
+			}
+			document.onkeyup = function(event) {
+				teclas_pressionadas.splice(teclas_pressionadas.indexOf(event.code), 1);
+			}
+
+			document.onclick = function(event) {
+				if(!vivo && event.clientX > largura_canvas / 2 - 50 && event.clientX < largura_canvas / 2 + 50 && event.clientY > altura_canvas / 2 + 105 && event.clientY < altura_canvas / 2 + 205) {
+					recomecar();
+				}
+			}
+		</script>
+	</body>
+</html>

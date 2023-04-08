@@ -1,0 +1,190 @@
+<body id = 'body' style = 'margin:0px;overflow:hidden;'><canvas id = 'canvas' width = 716 height = 716></canvas><canvas style = 'position:absolute;top:0;left:0;' id = 'malha_quadriculada' width = 716 height = 716></canvas><p style = 'position:absolute;bottom:-10;left:726;' id = 'velocidade'>x1</p><button style = 'position:absolute;top:5;left:726;' id = 'comecar'>começar</button><button style = 'position:absolute;top:5;left:805;' id = 'parar'>parar</button><button style = 'position:absolute;top:5;left:865;' id = 'preencher_aleatoriamente'>preencher aleatóriamente</button><button style = 'position:absolute;top:5;left:1045;' id = 'limpar'>limpar</button><button style = 'position:absolute;top:5;left:1112;' id = 'aumentar_velocidade'>aumentar velocidade</button><button style = 'position:absolute;top:5;left:1265;' id = 'diminuir_velocidade'>diminuir velocidade</button></body>
+<script>
+	var pincel = document.getElementById('canvas').getContext('2d');
+	var pincel2 = document.getElementById('malha_quadriculada').getContext('2d');
+	pincel2.fillRect(0, 0, 716, 716);
+	for(var x = 1;x < 715;x += 11) {
+		for(var y = 1;y < 715;y += 11) {
+			pincel2.clearRect(x, y, 10, 10);
+		}
+	}
+	class celula {
+		constructor(x, y, estado) {
+			this.x = x;
+			this.y = y;
+			this.estado = estado;
+		}
+		desenhar() {
+			if(this.estado) {
+				pincel.fillRect(this.x * 11, this.y * 11, 10, 10);
+			} else {
+				pincel.clearRect(this.x * 11, this.y * 11, 10, 10);
+			}
+		}
+		calcular_proxima_iteracao() {
+			var vizinhos;
+			if(this.x != 0 && this.y != 0 && this.x != 64 && this.y != 64) {
+				vizinhos = [celulas[this.x + 1][this.y], celulas[this.x + 1][this.y + 1], celulas[this.x][this.y + 1], celulas[this.x - 1][this.y + 1], celulas[this.x - 1][this.y], celulas[this.x - 1][this.y - 1], celulas[this.x][this.y - 1], celulas[this.x + 1][this.y - 1]];
+			}
+			if(this.x == 0 && this.y != 0 && this.y != 64) {
+				vizinhos = [celulas[this.x + 1][this.y], celulas[this.x + 1][this.y + 1], celulas[this.x][this.y + 1], celulas[this.x][this.y - 1], celulas[this.x + 1][this.y - 1]];
+			}
+			if(this.y == 0 && this.x != 0 && this.x != 64) {
+				vizinhos = [celulas[this.x + 1][this.y], celulas[this.x + 1][this.y + 1], celulas[this.x][this.y + 1], celulas[this.x - 1][this.y + 1], celulas[this.x - 1][this.y]];
+			}
+			if(this.x == 64 && this.y != 0 && this.y != 64) {
+				vizinhos = [celulas[this.x - 1][this.y], celulas[this.x - 1][this.y + 1], celulas[this.x][this.y + 1], celulas[this.x][this.y - 1], celulas[this.x - 1][this.y - 1]];
+			}
+			if(this.y == 64 && this.x != 0 && this.x != 64) {
+				vizinhos = [celulas[this.x + 1][this.y], celulas[this.x + 1][this.y - 1], celulas[this.x][this.y - 1], celulas[this.x - 1][this.y - 1], celulas[this.x - 1][this.y]];
+			}
+			if(this.x == 0 && this.y == 0) {
+				vizinhos = [celulas[this.x + 1][this.y], celulas[this.x + 1][this.y + 1], celulas[this.x][this.y + 1]]
+			}
+			if(this.x == 0 && this.y == 64) {
+				vizinhos = [celulas[this.x + 1][this.y], celulas[this.x + 1][this.y - 1], celulas[this.x][this.y - 1]]
+			}
+			if(this.x == 64 && this.y == 64) {
+				vizinhos = [celulas[this.x - 1][this.y], celulas[this.x - 1][this.y - 1], celulas[this.x][this.y - 1]]
+			}
+			if(this.x == 64 && this.y == 0) {
+				vizinhos = [celulas[this.x - 1][this.y], celulas[this.x - 1][this.y + 1], celulas[this.x][this.y + 1]]
+			}
+			var vizinhos_vivos = 0;
+			for(var i = 0;i < vizinhos.length;i++) {
+				if(vizinhos[i].estado == true) {
+					vizinhos_vivos++;
+				}
+			}
+			if(vizinhos_vivos < 2 || vizinhos_vivos > 3) {
+				this.estado_proxima_iteracao = false;
+			}
+			if(vizinhos_vivos == 3 || (this.estado && vizinhos_vivos == 2)) {
+				this.estado_proxima_iteracao = true;
+			}
+		}
+		atualizar() {
+			this.estado = this.estado_proxima_iteracao;
+		}
+		mudar_estado() {
+			if(this.estado == true) {
+				this.estado = false;
+			} else {
+				this.estado = true;
+			}
+		}
+	}
+	var velocidade = 1;
+	var celulas = [];
+	for(var x = 0; x < 65;x++) {
+		celulas.push([]);
+		for(var y = 0;y < 65;y++) {
+			celulas[x].push(new celula(x, y, false));
+		}
+	}
+	var simulacao = undefined;
+	document.getElementById('comecar').onclick = function() {
+		if(!simulacao) {
+			simulacao = setInterval(function() {
+				for(var x = 0; x < 65;x++) {
+					for(var y = 0;y < 65;y++) {
+						celulas[x][y].calcular_proxima_iteracao();
+					}
+				}
+				for(var x = 0; x < 65;x++) {
+					for(var y = 0;y < 65;y++) {
+						celulas[x][y].atualizar();
+						celulas[x][y].desenhar();
+					}
+				}
+			}, 1000 / velocidade);
+		}
+	}
+	document.getElementById('parar').onclick = function() {
+		if(simulacao) {
+			clearInterval(simulacao);
+			simulacao = undefined;
+		}
+	}
+	document.getElementById('preencher_aleatoriamente').onclick = function() {
+		for(var x = 0; x < 65;x++) {
+			for(var y = 0;y < 65;y++) {
+				if(Math.random() < 0.5) {
+					celulas[x][y].estado = true;
+				} else {
+					celulas[x][y].estado = false;
+				}
+				celulas[x][y].desenhar();
+			}
+		}
+	}
+	document.getElementById('limpar').onclick = function() {
+		for(var x = 0; x < 65;x++) {
+			for(var y = 0;y < 65;y++) {
+				celulas[x][y].estado = false;
+				celulas[x][y].desenhar();
+			}
+		}
+	}
+	document.getElementById('aumentar_velocidade').onclick = function() {
+		velocidade *= 2;
+		document.getElementById('velocidade').innerHTML = 'x' + velocidade;
+		if(simulacao) {
+			clearInterval(simulacao);
+			simulacao = setInterval(function() {
+				for(var x = 0; x < 65;x++) {
+					for(var y = 0;y < 65;y++) {
+						celulas[x][y].calcular_proxima_iteracao();
+					}
+				}
+				for(var x = 0; x < 65;x++) {
+					for(var y = 0;y < 65;y++) {
+						celulas[x][y].atualizar();
+						celulas[x][y].desenhar();
+					}
+				}
+			}, 1000 / velocidade);
+		}
+	}
+	document.getElementById('diminuir_velocidade').onclick = function() {
+		velocidade /= 2;
+		document.getElementById('velocidade').innerHTML = 'x' + velocidade;
+		if(simulacao) {
+			clearInterval(simulacao);
+			simulacao = setInterval(function() {
+				for(var x = 0; x < 65;x++) {
+					for(var y = 0;y < 65;y++) {
+						celulas[x][y].calcular_proxima_iteracao();
+					}
+				}
+				for(var x = 0; x < 65;x++) {
+					for(var y = 0;y < 65;y++) {
+						celulas[x][y].atualizar();
+						celulas[x][y].desenhar();
+					}
+				}
+			}, 1000 / velocidade);
+		}
+	}
+	var mouse_pressionado = false;
+	var pos_anterior = [-1, -1];
+	document.getElementById('malha_quadriculada').onmousedown = function() {
+		mouse_pressionado = true;
+		var x_mouse = Math.floor(event.clientX / 11);
+		var y_mouse = Math.floor(event.clientY / 11);
+		celulas[x_mouse][y_mouse].mudar_estado();
+		celulas[x_mouse][y_mouse].desenhar();
+	}
+	document.getElementById('malha_quadriculada').onmouseup = function() {
+		mouse_pressionado = false;
+	}
+	document.onmousemove = function(event) {
+		if(mouse_pressionado && (Math.floor(event.clientX / 11) != Math.floor(pos_anterior[0] / 11) || Math.floor(event.clientY / 11) != Math.floor(pos_anterior[1] / 11))) {
+			var x_mouse = Math.floor(event.clientX / 11);
+			var y_mouse = Math.floor(event.clientY / 11);
+			celulas[x_mouse][y_mouse].mudar_estado();
+			celulas[x_mouse][y_mouse].desenhar();
+		}
+		pos_anterior = [event.clientX, event.clientY];
+	}
+</script>

@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang = 'pt-BR'>
+	<head>
+		<meta charset = 'utf-8' name = 'viewport' content = 'width = device-width, initial-scale = 1'>
+		<title>collatz conjecture</title>
+	</head>
+	<body>
+		<input id = 'número'>
+		<button id = 'calcular'>calcular</button>
+		<div id = 'collatz'></div>
+		<script>
+			function collatz(x) {
+				var arr = [x];
+				while(x > 1n) {
+					if(x % 2n == 0n) {
+						x >>= 1n;
+					} else {
+						x = 3n * x + 1n;
+					}
+					arr.push(x);
+				}
+				return arr;
+			}
+			var input_numero = document.getElementById('número');
+			var botao_calcular = document.getElementById('calcular');
+			var div_collatz = document.getElementById('collatz');
+			input_numero.oninput = function() {
+				if(isNaN(parseInt(input_numero.value))) {
+					input_numero.value = '';
+				} else {
+					input_numero.value = BigInt(input_numero.value);
+				}
+				if(input_numero.value == 0) {
+					input_numero.value = '';
+				}
+			}
+			botao_calcular.onclick = function(event) {
+				var passos = collatz(BigInt(input_numero.value));
+				div_collatz.innerHTML = passos.join('<br>');
+			}
+		</script>
+	</body>
+</html>

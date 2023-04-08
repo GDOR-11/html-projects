@@ -1,0 +1,41 @@
+<meta charset = 'UTF-8'>
+<canvas id = 'tela' width = 1528 height = 706></canvas>
+<script>
+	var tela = document.getElementById('tela');
+	var pincel = tela.getContext('2d');
+	pincel.strokeStyle = 'blue';
+	function polarParaCartesiano(r, Θ) {
+		return [r * Math.cos(Θ) / zoom + 764, r * -Math.sin(Θ) / zoom + 353];
+	}
+	function desenha() {
+		pincel.beginPath();
+		pincel.arc(contas[0], contas[1], 1, 0, 2 * Math.PI);
+		pincel.fill();
+	}
+	function atualizaPosição() {
+		contas = polarParaCartesiano(θ, θ);
+	}
+	function mudaZoom(event) {
+		if(event.keyCode === 107) {
+			zoom /= 1.01;
+		}
+		if(event.keyCode === 109) {
+			zoom *= 1.01;
+		}
+		pincel.clearRect(0, 0, 1528, 706);
+		θ = 0;
+		for(;θ < zoom * Math.hypot(1528 / 2, 706 / 2);θ++) {
+			atualizaPosição();
+			desenha();
+		}
+	}
+	var zoom = 2;
+	var contas = [];
+	var θ = 0;
+	pincel.clearRect(0, 0, 1528, 706);
+	for(;θ < zoom * Math.hypot(1528 / 2, 706 / 2);θ++) {
+		atualizaPosição();
+		desenha();
+	}
+	document.onkeydown = mudaZoom;
+</script>

@@ -1,0 +1,345 @@
+<body style = 'margin: 0px;overflow: hidden;' id = 'body'>
+	<script src = '../three.min.js'></script>
+	<script src = '../OrbitControls.js'></script>
+	<script src = 'ammo.js'></script>
+	<script>
+		var body = document.getElementById('body');
+		var camera, controles, cena, renderizador;
+		var relogio = new THREE.Clock();
+
+		var gravidade = -9.8;
+		var mundo_fisico;
+		var objetos_rigidos = [];
+		var dobradica;
+		var cabo;
+		var transformacoes_corpos;
+
+		var rotacao_braco = 0;
+
+		Ammo().then(function(ammojs) {
+			Ammo = ammojs;
+			inicializar();
+			animacoes();
+		});
+
+		function inicializar() {
+			inicializar_graficos();
+			inicializar_fisica();
+			criar_objetos();
+			interacao_usuario();
+		}
+
+		function cm_para_pixels() {
+			var div = document.createElement('div');
+			div.style.width = '1cm';
+			document.body.append(div);
+			var resultado = div.clientWidth;
+			div.parentNode.removeChild(div);
+			return resultado;
+		}
+
+		function FOV(largura, altura) {
+			var pixels_para_cm = 1 / cm_para_pixels();
+			var largura_cm = largura * pixels_para_cm;
+			var altura_cm = altura * pixels_para_cm;
+
+			var aspecto = largura_cm / altura_cm;
+
+			var tamanho_diagonal = Math.hypot(largura_cm, altura_cm);
+
+			var distancia_tela = 30; // 30cm
+
+			var radianos = 2 * Math.atan(largura_cm / (2 * distancia_tela));
+			var graus = radianos * 180 / Math.PI;
+
+			return graus;
+		}
+
+		function inicializar_graficos() {
+			camera = new THREE.PerspectiveCamera(FOV(window.innerWidth, window.innerHeight), window.innerWidth / window.innerHeight, 1, 8.988465674311579e+307);
+			cena = new THREE.Scene();
+			cena.background = new THREE.Color(0xbfd1e5);
+			camera.position.set(-21, 15, 24);
+
+			renderizador = new THREE.WebGLRenderer();
+			renderizador.setPixelRatio(window.devicePixelRatio);
+			renderizador.setSize(body.clientWidth, body.clientHeight);
+			renderizador.shadowMap.enabled = true;
+			renderizador.shadowMap.type = THREE.PCFSoftShadowMap; // default THREE.PCFShadowMap
+			body.appendChild(renderizador.domElement);
+
+			controles = new THREE.OrbitControls(camera, renderizador.domElement);
+			controles.target.set(0, 2, 0);
+			controles.update();
+
+			var luz1 = new THREE.DirectionalLight(0xffffff, 1);
+			luz1.position.set(-10, 10, 10);
+			luz1.castShadow = true;
+			luz1.shadow.camera.left = -50;
+			luz1.shadow.camera.right = 50;
+			luz1.shadow.camera.top = 50;
+			luz1.shadow.camera.bottom = -50;
+			luz1.shadow.mapSize.x = 1024;
+			luz1.shadow.mapSize.y = 1024;
+			cena.add(luz1);
+
+			var luz2 = new THREE.AmbientLight(0x404040);
+			cena.add(luz2);
+		}
+
+		function inicializar_fisica() {
+			var configuracoes_colisao = new Ammo.btSoftBodyRigidBodyCollisionConfiguration();
+			var dispatcher = new Ammo.btCollisionDispatcher(configuracoes_colisao);
+			var broadphase = new Ammo.btDbvtBroadphase();
+			var Constraintsolver = new Ammo.btSequentialImpulseConstraintSolver();
+			var softBodySolver = new Ammo.btDefaultSoftBodySolver();
+			mundo_fisico = new Ammo.btSoftRigidDynamicsWorld(dispatcher, broadphase, Constraintsolver, configuracoes_colisao, softBodySolver);
+			mundo_fisico.setGravity(new Ammo.btVector3(0, gravidade, 0));
+			mundo_fisico.getWorldInfo().set_m_gravity(new Ammo.btVector3(0, gravidade, 0));
+			transformacoes_corpos = new Ammo.btTransform();
+		}
+
+		function criar_objetos() {
+			var pos = new THREE.Vector3();
+			var quat = new THREE.Quaternion();
+
+			pos.set(0, -0.5, 0);
+			quat.set(0, 0, 0, 1);
+			var chao = cria_paralelepipedo(40, 1, 40, 0, pos, quat, new THREE.MeshPhongMaterial({color:0xFFFFFF}));
+			chao.castShadow = true;
+			chao.receiveShadow = true;
+
+			var massa_bola = 2;
+			var raio_bola = 0.6;
+
+			var bola = new THREE.Mesh(new THREE.SphereBufferGeometry(raio_bola, 20, 20), new THREE.MeshPhongMaterial({color:0x202020}));
+			bola.castShadow = true;
+			bola.receiveShadow = true;
+			var formato_bola = new Ammo.btSphereShape(raio_bola);
+			pos.set(-3, 2, 0);
+			quat.set(0, 0, 0, 1);
+			cria_corpo_rigido(bola, formato_bola, massa_bola, pos, quat);
+			bola.userData.physicsBody.setFriction(0.5);
+
+			var massa_tijolo = 1;
+			var largura_tijolo = 0.4;
+			var profundidade_tijolo = 1;
+			var altura_tijolo = 0.4;
+			var num_tijolos_largura = 25;
+			var num_tijolos_altura = 25;
+			var z0 = -num_tijolos_largura * largura_tijolo * 0.5;
+			pos.set(0, altura_tijolo * 0.5, z0);
+			quat.set(0, 0, 0, 1);
+
+			for(var i = 0;i < num_tijolos_altura;i++) {
+				var linha_impar = i % 2 == 1;
+				pos.z = z0;
+				if(linha_impar) {
+					pos.z -= 0.25 * largura_tijolo;
+				}
+				var ultima_linha = linha_impar ? num_tijolos_largura + 1 : num_tijolos_largura;
+				for(var j = 0;j < ultima_linha;j++) {
+					if(linha_impar && (j == 0 || j == ultima_linha - 1)) {
+						var tijolo = cria_paralelepipedo(profundidade_tijolo, altura_tijolo, largura_tijolo / 2, massa_tijolo / 2, pos, quat, new THREE.MeshPhongMaterial({color:cor_aleatoria()}));
+					} else {
+						var tijolo = cria_paralelepipedo(profundidade_tijolo, altura_tijolo, largura_tijolo, massa_tijolo, pos, quat, new THREE.MeshPhongMaterial({color:cor_aleatoria()}));
+					}
+					tijolo.userData.physicsBody.setFriction(10);
+					tijolo.userData.physicsBody.setRestitution(0.9);
+					tijolo.castShadow = true;
+					tijolo.receiveShadow = true;
+					if(linha_impar && (j == 0 || j == ultima_linha - 2)) {
+						pos.z += largura_tijolo * 0.75;
+					} else {
+						pos.z += largura_tijolo;
+					}
+				}
+				pos.y += altura_tijolo;
+			}
+
+			// The rope
+			// Rope graphic object
+			var quantidade_segmentos_cabo = 10;
+			var comprimento_cabo = 4;
+			var massa_cabo = 3;
+			var pos_cabo = bola.position.clone();
+			pos_cabo.y += raio_bola;
+
+			var comprimento_segmento = comprimento_cabo / quantidade_segmentos_cabo;
+			var geometria_cabo = new THREE.BufferGeometry();
+			var material_cabo = new THREE.LineBasicMaterial({color:0x000000});
+			var pos_segmentos = [];
+			var indices_segmentos = [];
+
+			for(var i = 0;i < quantidade_segmentos_cabo + 1;i++) {
+				pos_segmentos.push(pos_cabo.x, pos_cabo.y + i * comprimento_segmento, pos_cabo.z);
+			}
+
+			for(var i = 0;i < quantidade_segmentos_cabo;i++) {
+				indices_segmentos.push(i, i + 1);
+			}
+
+			geometria_cabo.setIndex(new THREE.BufferAttribute(new Uint16Array(indices_segmentos), 1));
+			geometria_cabo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(pos_segmentos), 3));
+			geometria_cabo.computeBoundingSphere();
+			cabo = new THREE.LineSegments(geometria_cabo, material_cabo);
+			cabo.castShadow = true;
+			cabo.receiveShadow = true;
+			cena.add(cabo);
+
+			// Rope physic object
+			var ajuda_corpos_nao_rigidos = new Ammo.btSoftBodyHelpers();
+			var inicio_cabo = new Ammo.btVector3(pos_cabo.x, pos_cabo.y, pos_cabo.z);
+			var fim_cabo = new Ammo.btVector3(pos_cabo.x, pos_cabo.y + comprimento_cabo, pos_cabo.z);
+			var corpo_cabo = ajuda_corpos_nao_rigidos.CreateRope(mundo_fisico.getWorldInfo(), inicio_cabo, fim_cabo, quantidade_segmentos_cabo - 1, 0);
+			var configuracoes_cabo = corpo_cabo.get_m_cfg();
+			configuracoes_cabo.set_viterations(10);
+			configuracoes_cabo.set_piterations(10);
+			corpo_cabo.setTotalMass(massa_cabo, false);
+			mundo_fisico.addSoftBody(corpo_cabo, 1, -1);
+			cabo.userData.physicsBody = corpo_cabo;
+			// Disable deactivation
+			corpo_cabo.setActivationState(4);
+
+			// The base
+			var massa_braco = 2;
+			var comprimento_braco = 4;
+			var altura_poste = pos_cabo.y + comprimento_cabo;
+			var material_poste = new THREE.MeshPhongMaterial({color: 0x606060});
+			pos.set(pos_cabo.x, 0.1, pos_cabo.z - comprimento_braco);
+			quat.set(0, 0, 0, 1);
+			var base = cria_paralelepipedo(1, 0.2, 1, 0, pos, quat, material_poste);
+			base.castShadow = true;
+			base.receiveShadow = true;
+
+			pos.set(pos_cabo.x, 0.5 * altura_poste, pos_cabo.z - comprimento_braco);
+			var poste = cria_paralelepipedo(0.4, altura_poste, 0.4, 0, pos, quat, material_poste);
+			poste.castShadow = true;
+			poste.receiveShadow = true;
+
+			pos.set(pos_cabo.x, altura_poste + 0.2, pos_cabo.z - 0.5 * comprimento_braco);
+			var braco = cria_paralelepipedo(0.4, 0.4, comprimento_braco + 0.4, massa_braco, pos, quat, material_poste);
+			braco.castShadow = true;
+			braco.receiveShadow = true;
+
+			// Glue the rope extremes to the ball and the arm
+			var forca_uniao = 1;
+			corpo_cabo.appendAnchor(0, bola.userData.physicsBody, true, forca_uniao);
+			corpo_cabo.appendAnchor(quantidade_segmentos_cabo, braco.userData.physicsBody, true, forca_uniao);
+
+			// Hinge varraint to move the braco
+			var pontoA = new Ammo.btVector3(0, altura_poste * 0.5, 0);
+			var pontoB = new Ammo.btVector3(0, -0.2, -comprimento_braco * 0.5);
+			var eixo = new Ammo.btVector3(0, 1, 0);
+			dobradica = new Ammo.btHingeConstraint(poste.userData.physicsBody, braco.userData.physicsBody, pontoA, pontoB, eixo, eixo, true);
+			mundo_fisico.addConstraint(dobradica, false);
+		}
+
+		function cria_paralelepipedo(sx, sy, sz, mass, pos, quat, material) {
+			var threeMesh = new THREE.Mesh(new THREE.BoxBufferGeometry(sx, sy, sz, 1, 1, 1), material);
+			var forma = new Ammo.btBoxShape(new Ammo.btVector3(sx * 0.5, sy * 0.5, sz * 0.5));
+			cria_corpo_rigido(threeMesh, forma, mass, pos, quat);
+			return threeMesh;
+		}
+
+		function cria_corpo_rigido(threeMesh, forma, massa, pos, quat) {
+			threeMesh.position.copy(pos);
+			threeMesh.quaternion.copy(quat);
+
+			var transformacao = new Ammo.btTransform();
+			transformacao.setIdentity();
+			transformacao.setOrigin(new Ammo.btVector3(pos.x, pos.y, pos.z));
+			transformacao.setRotation(new Ammo.btQuaternion(quat.x, quat.y, quat.z, quat.w));
+			var estado_locomocao = new Ammo.btDefaultMotionState(transformacao);
+
+			var inercia = new Ammo.btVector3(0, 0, 0);
+			forma.calculateLocalInertia(massa, inercia);
+
+			var informacoes_construcao = new Ammo.btRigidBodyConstructionInfo(massa, estado_locomocao, forma, inercia);
+			var corpo = new Ammo.btRigidBody(informacoes_construcao);
+
+			threeMesh.userData.physicsBody = corpo;
+			cena.add(threeMesh);
+
+			if(massa > 0) {
+				objetos_rigidos.push(threeMesh);
+
+				// Disable deactivation
+				corpo.setActivationState(4);
+			}
+			mundo_fisico.addRigidBody(corpo);
+		}
+
+		function cor_aleatoria() {
+			return Math.floor(Math.random() * (1 << 24));
+		}
+
+		function interacao_usuario() {
+			window.addEventListener('keydown', function(event) {
+				switch(event.keyCode) {
+					case 81:
+						rotacao_braco = 1;
+						break;
+					case 65:
+						rotacao_braco = -1;
+						break;
+					default:
+						rotacao_braco = 0;
+						break;
+				}
+			}, false);
+
+			window.addEventListener('keyup', function() {
+				rotacao_braco = 0;
+			}, false );
+		}
+
+		function animacoes() {
+			renderizar();
+			requestAnimationFrame(animacoes);
+		}
+
+		function renderizar() {
+			var dt = relogio.getDelta();
+			atualizar_fisica(dt);
+			renderizador.render(cena, camera);
+		}
+
+		function atualizar_fisica(dt) {
+			// Hinge control
+			dobradica.enableAngularMotor(true, 1.5 * rotacao_braco, 50);
+
+			// Step world
+			mundo_fisico.stepSimulation(dt, 1);
+
+			// Update rope
+			var corpo_nao_rigido = cabo.userData.physicsBody;
+			var pos_segmentos = cabo.geometry.attributes.position.array;
+			var num_vertices = pos_segmentos.length / 3;
+			var nodes = corpo_nao_rigido.get_m_nodes();
+			var indexFloat = 0;
+			for(var i = 0;i < num_vertices;i++) {
+				var node = nodes.at(i);
+				var nodePos = node.get_m_x();
+				pos_segmentos[indexFloat++] = nodePos.x();
+				pos_segmentos[indexFloat++] = nodePos.y();
+				pos_segmentos[indexFloat++] = nodePos.z();
+			}
+			cabo.geometry.attributes.position.needsUpdate = true;
+
+			// Update rigid bodies
+			for(var i = 0;i < objetos_rigidos.length;i++) {
+				var three_obj = objetos_rigidos[i];
+				var ammo_obj = three_obj.userData.physicsBody;
+				var estado_movimento = ammo_obj.getMotionState();
+				if(estado_movimento) {
+					estado_movimento.getWorldTransform(transformacoes_corpos);
+					var posicao = transformacoes_corpos.getOrigin();
+					var quaterniao = transformacoes_corpos.getRotation();
+					three_obj.position.set(posicao.x(), posicao.y(), posicao.z());
+					three_obj.quaternion.set(quaterniao.x(), quaterniao.y(), quaterniao.z(), quaterniao.w());
+				}
+			}
+		}
+	</script>
+</body>

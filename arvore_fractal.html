@@ -1,0 +1,52 @@
+<html>
+	<head>
+		<meta charset = 'UTF-8'>
+		<title>árvores fractais</title>
+	</head>
+	<body style = 'margin:0px;overflow:hidden;'>
+		<canvas id = 'canvas' width = 1536 height = 722></canvas>
+		<script>
+			var pincel = document.getElementById('canvas').getContext('2d');
+			pincel.translate(768, 650);
+			function desenha_graveto(grossura, cor, iteracao, comprimento_graveto) {
+					pincel.lineWidth = comprimento_graveto / 10 + grossura;
+					pincel.strokeStyle = cor;
+					pincel.beginPath();
+					pincel.moveTo(0, 0);
+					pincel.lineTo(0, -comprimento_graveto);
+					pincel.stroke();
+			}
+			function graveto(iteracao, comprimento_graveto) {
+				if(iteracao < maximo_iteracoes) {
+					var variacao_aleatoria1 = Math.random() * variacao_angulo - variacao_angulo / 2;
+					var variacao_aleatoria2 = Math.random() * variacao_angulo - variacao_angulo / 2;
+					pincel.save();
+
+					desenha_graveto(0, 'red', iteracao, comprimento_graveto);
+
+					pincel.translate(0, -comprimento_graveto);
+					pincel.rotate(variacao_aleatoria1);
+
+					graveto(iteracao + 1, comprimento_graveto * (1 / 1.5 + Math.random() * variacao_comprimento - variacao_comprimento / 2));
+
+					pincel.rotate(variacao_aleatoria2 - variacao_aleatoria1 * 2);
+
+					graveto(iteracao + 1, comprimento_graveto * (1 / 1.5 + Math.random() * variacao_comprimento - variacao_comprimento / 2));
+
+					pincel.restore();
+
+					desenha_graveto(1, 'white', iteracao, comprimento_graveto);
+					desenha_graveto(0, 'black', iteracao, comprimento_graveto);
+				}
+			}
+			pincel.lineCap = 'round';
+			var variacao_angulo = 45;
+			var variacao_comprimento = 0.2;
+			var maximo_iteracoes = 15;
+			var comprimento = 150;
+
+			variacao_angulo *= Math.PI / 180;
+			graveto(0, comprimento);
+		</script>
+	</body>
+</html>

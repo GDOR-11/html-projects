@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>diffusion limited aggregation</title>
+		<style>
+			body {
+				margin: 0px;
+				overflow: hidden;
+			}
+			.preto {
+				background-color: black;
+			}
+		</style>
+	</head>
+	<body>
+		<canvas id = 'canvas'  class = 'preto'></canvas>
+		<script>
+			class QuadTree {
+				constructor(x, y, w, h) {
+					this.x = x || 0;
+					this.y = y || 0;
+					this.largura = w || largura;
+					this.altura = h || altura;
+					this.bolas = [];
+				}
+				adicionar(bola, contagem = 0) {
+					this.bolas.push(bola);
+					if(contagem++ < 5) {
+						if(bola.x > this.x - bola.r && bola.x < this.x + this.largura / 2 + bola.r) {
+							if(bola.y > this.y - bola.r && bola.y < this.y + this.altura / 2 + bola.r) {
+								if(!this.hasOwnProperty('cima_esquerda')) {
+									this.cima_esquerda = new QuadTree(this.x, this.y, this.largura / 2, this.altura / 2);
+								}
+								this.cima_esquerda.adicionar(bola, contagem);
+							}
+							if(bola.y > this.y + this.altura / 2 - bola.r && bola.y < this.y + this.altura + bola.r) {
+								if(!this.hasOwnProperty('baixo_esquerda')) {
+									this.baixo_esquerda = new QuadTree(this.x, this.y + this.altura / 2, this.largura / 2, this.altura / 2);
+								}
+								this.baixo_esquerda.adicionar(bola, contagem);
+							}
+						}
+						if(bola.x > this.x + this.largura / 2 - bola.r && bola.x < this.x + this.largura + bola.r) {
+							if(bola.y > this.y - bola.r && bola.y < this.y + this.altura / 2 + bola.r) {
+								if(!this.hasOwnProperty('cima_direita')) {
+									this.cima_direita = new QuadTree(this.x + this.largura / 2, this.y, this.largura / 2, this.altura / 2);
+								}
+								this.cima_direita.adicionar(bola, contagem);
+							}
+							if(bola.y > this.y + this.altura / 2 - bola.r && bola.y < this.y + this.altura + bola.r) {
+								if(!this.hasOwnProperty('baixo_direita')) {
+									this.baixo_direita = new QuadTree(this.x + this.largura / 2, this.y + this.altura / 2, this.largura / 2, this.altura / 2);
+								}
+								this.baixo_direita.adicionar(bola, contagem);
+							}
+						}
+					}
+				}
+				menor_distancia_local(ponto) {
+					var menor_distancia = Infinity;
+					var bola_mais_proxima = null;
+					for(var b of this.bolas) {
+						var dx = ponto.x - b.x;
+						var dy = ponto.y - b.y;
+						var distancia_sq = dx * dx + dy * dy;
+						if(distancia_sq < menor_distancia) {
+							menor_distancia = distancia_sq;
+							bola_mais_proxima = b;
+						}
+					}
+					if(bola_mais_proxima != null) {
+						return Math.sqrt(menor_distancia) - bola_mais_proxima.r;
+					} else {
+						return Infinity;
+					}
+				}
+				menor_distancia(ponto) {
+					function distancia_ponto_retangulo(p, x, y, w, h) {
+						return Math.hypot(Math.max(Math.abs(p.x - x) - w, 0), Math.max(Math.abs(p.y - y) - h, 0));
+					}
+					var menor_distancia = Infinity;
+					var lados = [];
+					for(var nome_lado of ['cima_esquerda', 'baixo_esquerda', 'cima_direita', 'baixo_direita']) {
+						var x = this.x + this.largura / 4;
+						if(nome_lado == 'cima_direita' || nome_lado == 'baixo_direita') {
+							x += this.largura / 2;
+						}
+						var y = this.y + this.altura / 4;
+						if(nome_lado == 'baixo_esquerda' || nome_lado == 'baixo_direita') {
+							y += this.altura / 2;
+						}
+						var distancia = distancia_ponto_retangulo(ponto, x, y, this.largura / 4, this.altura / 4);
+						lados.push({nome_lado, distancia});
+					}
+					lados.sort((a, b) => a.distancia - b.distancia);
+					for(var lado of lados) {
+						if(lado.distancia < menor_distancia && this.hasOwnProperty(lado.nome_lado)) {
+							menor_distancia = Math.min(this[lado.nome_lado].menor_distancia(ponto), menor_distancia);
+						}
+					}
+					if(menor_distancia == Infinity) {
+						menor_distancia = this.menor_distancia_local(ponto);
+					}
+					return menor_distancia;
+				}
+				desenhar() { // just for debugging/testing purposes
+					pincel.strokeStyle = 'rgba(255,255,255,0.5)';
+					pincel.lineJoin = 'round';
+					pincel.lineWidth = 1;
+					pincel.strokeRect(this.x, this.y, this.largura, this.altura);
+					this.cima_direita?.desenhar();
+					this.cima_esquerda?.desenhar();
+					this.baixo_direita?.desenhar();
+					this.baixo_esquerda?.desenhar();
+				}
+			}
+			class Particula {
+				constructor(x, y) {
+					var a = Math.random() * 2 * Math.PI;
+					this.x = x || largura / 2 + (max_dist + raio) * Math.cos(a);
+					this.y = y || altura / 2 + (max_dist + raio) * Math.sin(a);
+					this.r = raio;
+					this.cor = cor;
+				}
+				atualizar(particulas) {
+					var min_dist = quadtree.menor_distancia(this) - this.r;
+					if(min_dist <= 1e-5) {
+						return true;
+					}
+					this.cor = cor;
+					var a = Math.random() * 2 * Math.PI;
+					this.x += min_dist * Math.cos(a);
+					this.y += min_dist * Math.sin(a);
+					return false;
+				}
+				longe_demais(quadtree) {
+					return this.x < quadtree.x || this.x > quadtree.x + quadtree.largura || this.y < quadtree.y || this.y > quadtree.y + quadtree.altura;
+				}
+				desenhar() {
+					pincel.strokeStyle = 'hsl(' + this.cor + ', 100%, 50%)';
+					pincel.lineJoin = 'round';
+					pincel.lineWidth = raio * 2;
+					pincel.strokeRect(this.x, this.y, 0.01, 0.01);
+				}
+			}
+			function resize() {
+				largura = window.innerWidth;
+				altura = window.innerHeight;
+				canvas.width = largura;
+				canvas.height = altura;
+				pincel.clearRect(0, 0, largura, altura);
+				for(var particula of DLA) {
+					particula.desenhar();
+				}
+				quadtree = new QuadTree();
+				for(var particula of DLA) {
+					quadtree.adicionar(particula);
+				}
+			}
+			var canvas = document.getElementById('canvas');
+			var pincel = canvas.getContext('2d');
+			var largura = window.innerWidth;
+			var altura = window.innerHeight;
+			canvas.width = largura;
+			canvas.height = altura;
+			pincel.clearRect(0, 0, largura, altura);
+			window.onresize = resize;
+			var espaco_extra = 1000;
+			var cor = 0;
+			var raio = 1;
+			var max_dist = raio;
+			var DLA = [new Particula(largura / 2, altura / 2)];
+			DLA[0].desenhar();
+			var random_walker = new Particula();
+			var quadtree = new QuadTree(-espaco_extra, -espaco_extra, largura + 2 * espaco_extra, altura + 2 * espaco_extra);
+			quadtree.adicionar(DLA[0]);
+			function renderizar() {
+				var agora = Date.now();
+				while(Date.now() - agora < 1000 / 60) { // 60fps
+					if(random_walker.atualizar(DLA)) {
+						cor += 0.02;
+						diffx = random_walker.x - largura / 2;
+						diffy = random_walker.y - altura / 2;
+						dist = diffx * diffx + diffy * diffy;
+						if(dist > max_dist * max_dist) {
+							max_dist = Math.sqrt(dist);
+						}
+						DLA.push(random_walker);
+						quadtree.adicionar(random_walker);
+						random_walker.desenhar();
+						random_walker = new Particula();
+					} else if(random_walker.longe_demais(quadtree)) {
+						random_walker = new Particula();
+					}
+				}
+				requestAnimationFrame(renderizar);
+			}
+			requestAnimationFrame(renderizar);
+		</script>
+	</body>
+</html>

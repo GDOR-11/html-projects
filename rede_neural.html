@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang = 'pt-BR'>
+	<head>
+		<meta charset = 'utf-8' name = 'viewport' content = 'width = device-width, initial-scale = 1'>
+		<title>redes neurais</title>
+	</head>
+	<body>
+		<script>
+			class Neuron {
+				constructor(num_weights) {
+					this.weights = [];
+					this.weights.length = num_weights;
+					this.weights.fill(0);
+					this.bias = 0;
+				}
+				predict(inputs) {
+					var sum = 0;
+					for(var i = 0;i < inputs.length;i++) {
+						sum += inputs[i] * this.weights[i];
+					}
+					sum += this.bias;
+					return sigmoid(sum);
+				}
+				copy() {
+					var n = new Neuron(this.weights.length);
+					n.weights = this.weights.slice();
+					n.bias = this.bias;
+					return n;
+				}
+			}
+			class NeuralNetwork {
+				constructor(neurons_per_layer) {
+					this.neurons = [];
+					for(var i = 1;i < neurons_per_layer.length;i++) {
+						var neurons = [];
+						neurons.length = neurons_per_layer[i];
+						neurons.fill(undefined);
+						neurons = neurons.map(elmt => new Neuron(neurons_per_layer[i - 1]));
+						this.neurons.push(neurons);
+					}
+				}
+				predict(inputs, layer = this.neurons.length) {
+					var result_from_last_layer = inputs;
+					for(var i = 0;i < layer;i++) {
+						var result_from_current_layer = [];
+						for(var j = 0;j < this.neurons[i].length;j++) {
+							result_from_current_layer.push(this.neurons[i][j].predict(result_from_last_layer));
+						}
+						result_from_last_layer = result_from_current_layer;
+					}
+					return result_from_last_layer;
+				}
+				cost(input, expected) {
+					var result = this.predict(input);
+					var sum = 0;
+					for(var i = 0;i < result.length;i++) {
+						var diff = result[i] - expected[i];
+						sum += diff * diff;
+					}
+					return sum;
+				}
+				avarage_cost(inputs, expected) {
+					var cost_sum = 0;
+					for(var i = 0;i < inputs.length;i++) {
+						cost_sum += this.cost(inputs[i], expected[i]);
+					}
+					return cost_sum / inputs.length;
+				}
+				backpropagate(inputs, expected_result) {
+					var trained_neurons = this.neurons.slice();
+					for(var i = 0;i < trained_neurons.length;i++) {
+						for(var j = 0;j < trained_neurons[i].length;j++) {
+							trained_neurons[i][j] = trained_neurons[i][j].copy();
+						}
+					}
+					for(var i = 0;i < inputs.length;i++) {
+						var result = this.predict(inputs[i]);
+						var expected = expected_result[i];
+						for(var j = this.neurons.length - 1;j > 0;j--) {
+							for(var k = 0;k < this.neurons[j].length;k++) {
+								var current_layer = this.predict(inputs[i], j + 1); // j + 1 talvez esteja incorreto
+								var previous_layer = this.predict(inputs[i], j); // m u i t o     i n e f i c i e n t e
+								var previous_layer_sum = previous_layer.reduce((sum, val) => sum + val, 0);
+								var weights = trained_neurons[j][k].weights;
+								var weight_sum = weights.reduce((sum, val) => sum + val, 0);
+								var adjust = expected[k] - current_layer[k]; // talvez tenha que elevar a diferenca ao quadrado
+								trained_neurons[j][k].bias += adjust / 3;
+								for(var l = 0;l < weights.length;l++) {
+									weights[l] += (adjust * previous_layer[l] / previous_layer_sum) / 3; // seila deve ser isso
+									console.log(trained_neurons, trained_neurons[j][k].weights[l], weights[l], {j, k, l});
+								}
+								result = previous_layer;
+								expected = result.map((val, idx) => val + (adjust * weights[idx] / weight_sum) / 3);
+							}
+						}
+					}
+					console.log(trained_neurons);
+					this.neurons = trained_neurons;
+				}
+			}
+			function sigmoid(x) {
+				// return Math.max(0, x);
+				return 1 / (1 + Math.exp(-x));
+			}
+		</script>
+	</body>
+</html>

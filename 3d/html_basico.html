@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang = 'pt-BR'>
+	<head>
+		<meta charset = 'utf-8' name = 'viewport' content = 'width = device-width, initial-scale = 1'>
+		<meta http-equiv = 'X-UA-Compatible' content = 'ie = edge'>
+		<title>title</title>
+		<script>
+			alert('change title');
+		</script>
+		<style>
+			body {
+				margin: 0px;
+				overflow: hidden;
+			}
+		</style>
+		<script src = 'three.min.js'></script>
+	</head>
+	<body>
+		<script>
+			function cm_to_pixels() {
+				var div = document.createElement('div');
+				div.style.width = '1cm';
+				document.body.append(div);
+				var result = div.clientWidth;
+				div.parentNode.removeChild(div);
+				return result;
+			}
+			function FOV(width, height) {
+				var pixels_to_cm = 1 / cm_to_pixels();
+				var width_cm = width * pixels_to_cm;
+				var height_cm = height * pixels_to_cm;
+
+				var aspect_ratio = width_cm / height_cm;
+
+				var distance_to_screen = 30; // i used 30cm as default distance people look to the screen
+
+				var radians = 2 * Math.atan(width_cm / (2 * distance_to_screen));
+				var degrees = radians * 180 / Math.PI;
+
+				return degrees;
+			}
+
+			var renderer = new THREE.WebGLRenderer();
+			renderer.setSize(window.innerWidth, window.innerHeight);
+			document.body.append(renderer.domElement);
+
+			var fov = FOV(window.innerWidth, window.innerHeight);
+			var aspect_ratio = window.innerWidth / window.innerHeight;
+			var near_clip_plane = 0.1;
+			var far_clip_plane = 8.988465674311579e+307;
+			var camera = new THREE.PerspectiveCamera(fov, aspect_ratio, near_clip_plane, far_clip_plane);
+			camera.position.z = 5;
+
+			var scene = new THREE.Scene();
+
+			var geometry = new THREE.BoxBufferGeometry(1, 1, 1);
+			var material = new THREE.MeshNormalMaterial();
+			var cube = new THREE.Mesh(geometry, material);
+			scene.add(cube);
+
+			function renderizar(time) {
+				time /= 1000;
+				cube.rotation.x = time * 1.3;
+				cube.rotation.y = time * 1.4;
+				cube.rotation.z = time * 1.5;
+				renderer.render(scene, camera);
+				requestAnimationFrame(renderizar);
+			}
+			requestAnimationFrame(renderizar);
+		</script>
+	</body>
+</html>

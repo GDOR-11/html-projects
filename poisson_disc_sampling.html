@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang = 'pt-BR'>
+	<head>
+		<meta charset = 'utf-8' name = 'viewport' content = 'width = device-width, initial-scale = 1'>
+		<title>poisson disc sampling</title>
+		<style>
+			body {
+				margin: 0px;
+				overflow: hidden;
+			}
+			canvas {
+				background: #000;
+			}
+		</style>
+	</head>
+	<body>
+		<canvas id = 'canvas'></canvas>
+		<script>
+			var canvas = document.getElementById('canvas');
+			var pincel = canvas.getContext('2d');
+			var largura = window.innerWidth;
+			var altura = window.innerHeight;
+			canvas.width = largura;
+			canvas.height = altura;
+			window.onresize = function() {
+				largura = window.innerWidth;
+				altura = window.innerHeight;
+				canvas.width = largura;
+				canvas.height = altura;
+				pincel.fillStyle = 'blue';
+				for(var i = 0;i < grid.length;i++) {
+					for(var j = 0;j < grid[i].length;j++) {
+						if(grid[i][j] != -1) {
+							pincel.fillRect(grid[i][j].x, grid[i][j].y, 1, 1);
+						}
+					}
+				}
+				pincel.fillStyle = 'red';
+				for(var i = 0;i < lista_ativa.length;i++) {
+					pincel.fillRect(lista_ativa[i].x, lista_ativa[i].y, 1, 1);
+				}
+			}
+			var r = 3;
+			var k = 8;
+			var r_sqrt2 = r / Math.SQRT2;
+			var grid = [];
+			for(var i = 0;i < largura / (r / Math.SQRT2);i++) {
+				grid.push([]);
+				for(var j = 0;j < altura / (r / Math.SQRT2);j++) {
+					grid[i].push(-1);
+				}
+			}
+			var ponto_inicial = {
+				x: Math.random() * largura,
+				y: Math.random() * altura
+			}
+			grid[Math.floor(ponto_inicial.x / r_sqrt2)][Math.floor(ponto_inicial.y / r_sqrt2)] = ponto_inicial;
+			var lista_ativa = [ponto_inicial];
+			function renderizar() {
+				for(var iter = 0;iter < 256 && lista_ativa.length > 0;iter++) {
+					var index = Math.floor(Math.random() * lista_ativa.length);
+					var ponto = lista_ativa[index];
+					var achou = false;
+					for(var n = 0;n < k;n++) {
+						var a = Math.random() * 2 * Math.PI;
+						var l = (Math.random() + 1) * r;
+						var novo_ponto = {
+							x: l * Math.cos(a) + ponto.x,
+							y: l * Math.sin(a) + ponto.y
+						}
+						var index_novo_ponto = [Math.floor(novo_ponto.x / r_sqrt2), Math.floor(novo_ponto.y / r_sqrt2)];
+						if(index_novo_ponto[0] >= 0 && index_novo_ponto[0] < grid.length && index_novo_ponto[1] >= 0 && index_novo_ponto[1] < grid[0].length) {
+							var ponto_mais_perto_qur_r = false;
+							for(var i = -2;i <= 2;i++) {
+								var index_i = i + index_novo_ponto[0];
+								if(index_i >= 0 && index_i < grid.length) {
+									for(var j = -2;j <= 2;j++) {
+										var index_j = j + index_novo_ponto[1];
+										if(index_j >= 0 && index_j < grid[0].length) {
+											var ponto_comparacao = grid[index_i][index_j];
+											if(Math.hypot(ponto_comparacao.x - novo_ponto.x, ponto_comparacao.y - novo_ponto.y) < r) {
+												ponto_mais_perto_qur_r = true;
+											}
+										}
+									}
+								}
+							}
+							if(!ponto_mais_perto_qur_r) {
+								lista_ativa.push(novo_ponto);
+								grid[Math.floor(novo_ponto.x / r_sqrt2)][Math.floor(novo_ponto.y / r_sqrt2)] = novo_ponto;
+								pincel.fillStyle = 'red';
+								pincel.fillRect(novo_ponto.x, novo_ponto.y, 1, 1);
+								achou = true;
+								// break;
+							}
+						}
+					}
+					if(!achou) {
+						pincel.fillStyle = 'blue';
+						pincel.fillRect(lista_ativa[index].x, lista_ativa[index].y, 1, 1);
+						lista_ativa.splice(index, 1);
+					}
+				}
+				requestAnimationFrame(renderizar);
+			}
+			requestAnimationFrame(renderizar);
+		</script>
+	</body>
+</html>

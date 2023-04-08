@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang = 'pt-BR'>
+	<head>
+		<meta charset = 'utf-8' name = 'viewport' content = 'width = device-width, initial-scale = 1'>
+		<title>rdp curve simplification</title>
+		<style>
+			body {
+				margin: 0px;
+				overflow: hidden;
+			}
+			canvas {
+				background-color: #000;
+			}
+		</style>
+	</head>
+	<body>
+		<canvas id = 'canvas'></canvas>
+		<script>
+			function f(x) {
+				return Math.cos(2 * Math.PI * x) * Math.exp(-x);
+			}
+			function dist(a, b, c) {
+				var ac = {x: c.x - a.x, y: c.y - a.y};
+				var ab = {x: b.x - a.x, y: b.y - a.y};
+				var l_ab = Math.hypot(ab.x, ab.y);
+				var distancia_projecao = (ac.x * ab.x + ac.y * ab.y) / l_ab;
+				var norm_ab = {x: ab.x / l_ab, y: ab.y / l_ab};
+				var p = {x: norm_ab.x * distancia_projecao, y: norm_ab.y * distancia_projecao};
+				return Math.hypot(c.x - p.x, c.y - p.y);
+			}
+			function rdp(pontos) {
+				var retorno = [pontos[0], pontos[pontos.length - 1]];
+				pontos = pontos.slice(1);
+				pontos.pop();
+				var index_recorde = -1;
+				var distancia_recorde = -Infinity;
+				for(var i = 1;i < pontos.length - 1;i++) {
+					var distancia = dist(pontos[0], pontos[pontos.length - 1], pontos[i]);
+					if(distancia >= epsilon && distancia > distancia_recorde) {
+						index_recorde = i;
+						distancia_recorde = distancia;
+					}
+				}
+				// console.log(index_recorde);
+				if(index_recorde == -1) {
+					return [pontos[0], pontos[pontos.length - 1]];
+				}
+				var parte_1 = rdp(pontos.slice(0, index_recorde + 1));
+				var parte_2 = rdp(pontos.slice(index_recorde));
+				return parte_1.slice(0, parte_1.length - 1).concat(parte_2);
+			}
+			var canvas = document.getElementById('canvas');
+			var pincel = canvas.getContext('2d');
+			var largura = window.innerWidth;
+			var altura = window.innerHeight;
+			canvas.width = largura;
+			canvas.height = altura;
+			window.onresize = function() {
+				largura = window.innerWidth;
+				altura = window.innerHeight;
+				canvas.width = largura;
+				canvas.height = altura;
+			}
+			var escala = altura / 3;
+			var pontos = [];
+			pincel.strokeStyle = 'blue';
+			pincel.beginPath();
+			for(var x = 0;x < largura;x++) {
+				var y = altura / 2 - f(x / escala) * escala;
+				pontos.push({x, y});
+				pincel.lineTo(x, y);
+			}
+			pincel.stroke();
+			var epsilon = 100;
+			var pontos_simplificados = rdp(pontos, epsilon);
+			pincel.strokeStyle = 'red';
+			pincel.beginPath();
+			for(var ponto of pontos_simplificados) {
+				pincel.lineTo(ponto.x, ponto.y);
+			}
+			pincel.stroke();
+			function renderizar() {
+				// pincel.clearRect(0, 0, largura, altura);
+				requestAnimationFrame(renderizar);
+			}
+			requestAnimationFrame(renderizar);
+		</script>
+	</body>
+</html>

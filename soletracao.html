@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang = 'pt-BR'>
+	<head>
+		<meta charset = 'utf-8' name = 'viewport' content = 'width = device-width, initial-scale = 1'>
+		<title>soletracao</title>
+	</head>
+	<body>
+		<script>
+			function soletrar(str) {
+				var arr = [];
+				for(var letra of str) {
+					arr.push(letras[letra]);
+				}
+				return arr.join(' ');
+			}
+			var letras = {
+				' ': '',
+				a: 'a',
+				b: 'be',
+				c: 'ce',
+				d: 'de',
+				e: 'e',
+				f: 'efe',
+				g: 'ge',
+				h: 'aga',
+				i: 'i',
+				j: 'jota',
+				k: 'ca',
+				l: 'ele',
+				m: 'eme',
+				n: 'ene',
+				o: 'o',
+				p: 'pe',
+				q: 'que',
+				r: 'erre',
+				s: 'esse',
+				t: 'te',
+				u: 'u',
+				v: 'v',
+				w: 'dabliu',
+				x: 'xis',
+				y: 'ipsilon',
+				z: 'ze'
+			};
+			var str = 'y';
+			var agora = Date.now();
+			function proximo_termo() {
+				str = soletrar(str);
+				var pre = document.createElement('pre');
+				pre.innerHTML = str;
+				document.body.append(pre);
+				document.body.append(document.createElement('br'));
+				setTimeout(proximo_termo, Date.now() - agora);
+				agora = Date.now();
+			}
+			setTimeout(proximo_termo);
+		</script>
+	</body>
+</html>

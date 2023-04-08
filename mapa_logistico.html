@@ -1,0 +1,28 @@
+<html>
+	<head>
+		<meta charset = 'UTF-8'>
+		<title>mapa logístico</title>
+		<style>
+			body {
+				margin: 0px;
+				overflow:  hidden;
+			}
+		</style>
+	</head>
+	<body>
+		<canvas id = 'canvas' width = 1536 height = 722></canvas>
+		<script>
+			var pincel = document.getElementById('canvas').getContext('2d');
+			var max_iteracoes = 10000;
+			for(var r = 0;r < 4;r += 4 / 1536) {
+				var populacao_atual = 0.5;
+				for(var i = 1;i <= max_iteracoes;i++) {
+					populacao_atual = r * populacao_atual * (1 - populacao_atual);
+					if(i > max_iteracoes - 1000) {
+						pincel.fillRect(r * 1536 / 4, -populacao_atual * 719 + 719, 1, 1);
+					}
+				}
+			}
+		</script>
+	</body>
+</html>

@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang = 'pt-BR'>
+	<head>
+		<meta charset = 'utf-8' name = 'viewport' content = 'width = device-width, initial-scale = 1'>
+		<title>virus</title>
+		<style>
+			body {
+				margin: 0px;
+				overflow: hidden;
+			}
+		</style>
+	</head>
+	<body>
+		<canvas id = 'canvas' style = 'background-color: #000;'></canvas>
+		<script>
+			class Corrente {
+				constructor() {
+					this.x = Math.random() * largura;
+					this.y = Math.random() * altura;
+					this.img = imagens[Math.floor(Math.random() * imagens.length)];
+				}
+				desenhar() {
+					pincel.drawImage(this.img, this.x, this.y, this.img.width * (Math.random() + 4) * 0.2, this.img.height * (Math.random() + 4) * 0.2);
+				}
+				atualizar(correntes) {
+					if(Math.random() < 0.075) {
+						correntes.splice(correntes.indexOf(this), 1);
+					}
+					this.x += 40;
+					this.y += 40;
+				}
+			}
+			var canvas = document.getElementById('canvas');
+			var pincel = canvas.getContext('2d');
+			var largura = window.innerWidth;
+			var altura = window.innerHeight;
+			canvas.width = largura;
+			canvas.height = altura;
+			window.onresize = function() {
+				largura = window.innerWidth;
+				altura = window.innerHeight;
+				canvas.width = largura;
+				canvas.height = altura;
+				var img = new Image();
+				img.src = 'https://www.oficinadanet.com.br/imagens/post/29688/750xNxwindows10.png.pagespeed.ic.187e2b51d9.png';
+				img.onload = function() {
+					pincel.drawImage(img, 0, 0, largura, altura);
+				}
+			}
+			var src = ['https://img.ibxk.com.br/2015/12/08/08112229622073.jpg?w=704', 'https://i2.wp.com/tecnologiadainformatica.com.br/wp-content/uploads/2018/11/1522397403184836911.jpg?fit=979%2C512&ssl=1', 'http://s2.glbimg.com/u_Gan6jua2C3jooP87C6xjmC7bg=/695x0/s.glbimg.com/po/tt2/f/original/2016/10/20/cmd01.png', 'http://s2.glbimg.com/UNMPSBJNFFvBLxVdfOXNvqgiDUs=/695x0/s.glbimg.com/po/tt2/f/original/2016/10/20/cmd06.png'];
+			var imagens = [...Array(src.length).keys()].map(i => {var img = new Image();img.src = src[i];return img;});
+			var correntes = [];
+			var img = new Image();
+			img.src = 'https://www.oficinadanet.com.br/imagens/post/29688/750xNxwindows10.png.pagespeed.ic.187e2b51d9.png';
+			img.onload = function() {
+				pincel.drawImage(img, 0, 0, largura, altura);
+			}
+			function renderizar() {
+				if(Math.random() < 0.1) {
+					var img = imagens[Math.floor(Math.random() * imagens.length)];
+					pincel.drawImage(img, Math.random() * largura, Math.random() * altura, img.width * (Math.random() + 4) * 0.2, img.height * (Math.random() + 4) * 0.2);
+				}
+				if(Math.random() < 0.01) {
+					correntes.push(new Corrente());
+				}
+				for(var corrente of correntes) {
+					if(Math.random() < 0.2) {
+						corrente.desenhar();
+						corrente.atualizar(correntes);
+					}
+				}
+				requestAnimationFrame(renderizar);
+			}
+			requestAnimationFrame(renderizar);
+			var full_screen = false;
+			document.onfullscreenchange = function(event) {
+				full_screen = !full_screen;
+				document.body.style.cursor = full_screen ? 'none' : 'context-menu';
+			}
+			document.onclick = function(event) {
+				document.documentElement.requestFullscreen();
+			}
+		</script>
+	</body>
+</html>

@@ -1,0 +1,37 @@
+<input id = 'mensagem' onfocus = 'focou()' onblur = 'desfocou()'>
+<button id = 'enviar' onclick = 'enviar()'>enviar</button>
+<script>
+// 	eh assim q fica um codigo se vc n quer criar variaveis, c mais variaveis ficaria muito mais simples
+	function enviar() {
+		var horario_atual = new Date();
+		document.body.append(document.createElement('br'));
+		document.body.append(document.createElement('br'));
+		if(horario_atual.getHours() < 10) {
+			document.body.append(document.createTextNode('0' + horario_atual.getHours() + ':'));
+		} else {
+			document.body.append(document.createTextNode(horario_atual.getHours() + ':'));
+		}
+		if(horario_atual.getMinutes() < 10) {
+			document.body.append(document.createTextNode('0' + horario_atual.getMinutes()));
+		} else {
+			document.body.append(document.createTextNode(horario_atual.getMinutes()));
+		}
+		document.body.append(document.createElement('br'));
+		for(var i = 0;i < document.getElementById('mensagem').value.split('').length;i++) {
+			if(i % 75 == 0 && i != 0)
+				document.body.append(document.createElement('br'));
+			document.body.append(document.createTextNode(document.getElementById('mensagem').value.split('')[i]));
+		}
+		document.getElementById('mensagem').value = '';
+		setTimeout(function () {document.getElementById('mensagem').focus()}, 0);
+	}
+	var focado = true;
+	function focou() {
+		focado = true;
+	}
+	function desfocou() {
+		focado = false;
+	}
+	setTimeout(function () {document.getElementById('mensagem').focus()}, 0);
+	document.onkeydown = function() {if(event.keyCode == 13 && focado){enviar()}};
+</script>

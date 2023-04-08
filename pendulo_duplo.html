@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang = 'pt-BR'>
+	<head>
+		<meta charset = 'utf-8' name = 'viewport' content = 'width = device-width, initial-scale = 1'>
+		<title>pendulo duplo</title>
+		<style>
+			body {
+				margin: 0px;
+				overflow: hidden;
+			}
+		</style>
+	</head>
+	<body>
+		<canvas id = 'canvas2'></canvas>
+		<canvas id = 'canvas1' style = 'position: absolute;top: 0px;left: 0px;'></canvas>
+		<script>
+			function desenhar() {
+				pincel_1.clearRect(-largura / 2, -altura / 2, largura, altura);
+
+				pincel_2.strokeStyle = 'rgba(0, 0, 255, 0.2)';
+				var x1 = r2 * Math.sin(a1_anterior) + r1 * Math.sin(a2_anterior);
+				var y1 = r2 * Math.cos(a1_anterior) + r1 * Math.cos(a2_anterior);
+				var x2 = r2 * Math.sin(a1) + r1 * Math.sin(a2);
+				var y2 = r2 * Math.cos(a1) + r1 * Math.cos(a2);
+				pincel_2.beginPath();
+				pincel_2.moveTo(x1, y1);
+				pincel_2.lineTo(x2, y2);
+				pincel_2.stroke();
+				caminho.push({x: x2, y: y2});
+
+				pincel_1.strokeStyle = 'black';
+				pincel_1.fillStyle = 'black';
+				pincel_1.beginPath();
+				pincel_1.moveTo(0, 0);
+				pincel_1.lineTo(r1 * Math.sin(a1), r1 * Math.cos(a1));
+				pincel_1.lineTo(r2 * Math.sin(a2) + r1 * Math.sin(a1), r2 * Math.cos(a2) + r1 * Math.cos(a1));
+				pincel_1.stroke();
+				pincel_1.beginPath();
+				pincel_1.arc(r1 * Math.sin(a1), r1 * Math.cos(a1), Math.sqrt(m1) * 5, 0, 2 * Math.PI);
+				pincel_1.arc(r2 * Math.sin(a2) + r1 * Math.sin(a1), r2 * Math.cos(a2) + r1 * Math.cos(a1), Math.sqrt(m2) * 5, 0, 2 * Math.PI);
+				pincel_1.fill();
+
+				a1_anterior = a1;
+				a2_anterior = a2;
+			}
+			function mover(dt) {
+				var acc1 = (-g * (2 * m1 + m2) * Math.sin(a1) - m2 * g * Math.sin(a1 - 2 * a2) - 2 * Math.sin(a1 - a2) * m2 * (v2 * v2 * r2 + v1 * v1 * r1 * Math.cos(a1 - a2))) / (r1 * (2 * m1 + m2 - m2 * Math.cos(2 * a1 - 2 * a2)));
+				var acc2 = (2 * Math.sin(a1 - a2) * (v1 * v1 * r1 * (m1 + m2) + g * (m1 + m2) * Math.cos(a1) + v2 * v2 * r2 * m2 * Math.cos(a1 - a2))) / (r2 * (2 * m1 + m2 - m2 * Math.cos(2 * a1 - 2 * a2)));
+				v1 += acc1 * dt;
+				v2 += acc2 * dt;
+				a1 += v1 * dt;
+				a2 += v2 * dt;
+			}
+			var canvas_1 = document.getElementById('canvas1');
+			var pincel_1 = canvas_1.getContext('2d');
+			var canvas_2 = document.getElementById('canvas2');
+			var pincel_2 = canvas_2.getContext('2d');
+			var largura = window.innerWidth;
+			var altura = window.innerHeight;
+			canvas_1.width = largura;
+			canvas_1.height = altura;
+			canvas_2.width = largura;
+			canvas_2.height = altura;
+			pincel_1.translate(largura / 2, altura / 2);
+			pincel_2.translate(largura / 2, altura / 2);
+			window.onresize = function() {
+				largura = window.innerWidth;
+				altura = window.innerHeight;
+				canvas_1.width = largura;
+				canvas_1.height = altura;
+				canvas_2.width = largura;
+				canvas_2.height = altura;
+				pincel_1.translate(largura / 2, altura / 2);
+				pincel_2.translate(largura / 2, altura / 2);
+				pincel_2.strokeStyle = 'rgba(0, 0, 255, 0.2)';
+				pincel_2.beginPath();
+				pincel_2.moveTo(caminho[0].x, caminho[0].y)
+				for(var i = 1;i < caminho.length;i++) {
+					pincel_2.lineTo(caminho[i].x, caminho[i].y);
+				}
+				pincel_2.stroke();
+			}
+
+			var m1 = 10;
+			var m2 = 10;
+			var r1 = 180.25;
+			var r2 = 180.25;
+			var a1 = 0;
+			var a2 = Math.PI;
+			var v1 = 0;
+			var v2 = 0.000000001;
+			var g = 9.80665 * r1; // equivalente a r1 = r2 = 1;
+
+
+			var a1_anterior = a1;
+			var a2_anterior = a2;
+			var caminho = [];
+			var agora = Date.now();
+			function renderizar() {
+				var dt = (Date.now() - agora) / 100000000;
+				agora = Date.now();
+				if(dt < 0.000001) {
+					for(var i = 0;i < 100000;i++) {
+						mover(dt);
+					}
+					desenhar();
+				}
+				requestAnimationFrame(renderizar);
+			}
+			requestAnimationFrame(renderizar);
+		</script>
+	</body>
+</html>

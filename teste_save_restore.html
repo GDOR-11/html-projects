@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>ctx.save e ctx.restore</title>
+		<style>
+			body {
+				margin: 0px;
+				overflow: hidden;
+			}
+		</style>
+	</head>
+	<body>
+		<canvas id = 'canvas'></canvas>
+		<script>
+			function esperar(milissegundos) {
+				return new Promise(resolve => setTimeout(resolve, milissegundos));
+			}
+			(async function() {
+				var canvas = document.getElementById('canvas');
+				var pincel = canvas.getContext('2d');
+				var largura = window.innerWidth;
+				var altura = window.innerHeight;
+				canvas.width = largura;
+				canvas.height = altura;
+
+				pincel.fillRect(0, 0, 50, 50);
+
+				await esperar(500);
+
+				pincel.save();
+				pincel.translate(100, 100);
+
+				pincel.fillRect(0, 0, 50, 50);
+
+				await esperar(500);
+
+				pincel.save();
+				pincel.translate(100, 100);
+
+				pincel.fillRect(0, 0, 50, 50);
+
+				pincel.fillStyle = 'green';
+
+				await esperar(500);
+
+				pincel.fillRect(0, 0, 50, 50);
+
+				await esperar(500);
+
+				pincel.restore();
+				pincel.fillStyle = 'green';
+
+				pincel.fillRect(0, 0, 50, 50);
+
+				await esperar(500);
+
+				pincel.restore();
+				pincel.fillStyle = 'green';
+
+				pincel.fillRect(0, 0, 50, 50);
+
+				await esperar(500);
+
+				pincel.restore();
+				pincel.fillStyle = 'green';
+				
+				pincel.fillRect(0, 0, 50, 50);
+			})();
+		</script>
+	</body>
+</html>

@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang = 'pt-BR'>
+	<head>
+		<meta charset = 'UTF-8'>
+		<meta name = 'viewport' content = 'width = device-width, initial-scale = 1.0'>
+		<meta http-equiv = 'X-UA-Compatible' content = 'ie = edge'>
+		<title>título</title>
+		<script>
+			alert('alterar título');
+		</script>
+		<style>
+			body {
+				margin: 0px;
+				overflow: hidden;
+			}
+		</style>
+	</head>
+	<body>
+		<canvas id = 'canvas'></canvas>
+		<script id = 'vertex-shader' type = 'glsl'>#version 300 es
+			// this is going to receive data from a buffer
+			in vec4 position;
+			void main() {
+				// gl_Position is the output of the vertex shader (the position of the vertex currently being calculated)
+				gl_Position = position;
+			}
+		</script>
+		<script id = 'fragment-shader' type = 'glsl'>#version 300 es
+			// setting shader precision to high
+			precision highp float;
+
+			uniform vec2 resolution;
+
+			// output of fragment shader
+			out vec4 FragColor;
+			void main() {
+				// making a uv that goes from -1 to 1
+				vec2 uv = 2.0 * gl_FragCoord.xy / resolution - 1.0;
+
+				// setting the color of the pixel to rgba(0, 0, 0, 1)
+				FragColor = vec4(uv.xy, 0, 1);
+			}
+		</script>
+		<script>
+			function formatNumber(number, max) {
+				var num_digits = (max + '').length;
+				var remaining_zeros = num_digits - (number + '').length;
+				return '0'.repeat(remaining_zeros) + number;
+			}
+
+			function createShader(gl, type, code) {
+				var shader = gl.createShader(type);
+				gl.shaderSource(shader, code);
+				gl.compileShader(shader);
+				var noErrors = gl.getShaderParameter(shader, gl.COMPILE_STATUS);
+				if(noErrors) {
+					return shader;
+				}
+
+				// making a debug code
+				code = code.split('\n');
+				for(var i = 0;i < code.length;i++) {
+					code[i] = formatNumber(i + 1, code.length + 1) + '.' + code[i];
+				}
+				code = code.join('\n');
+
+				throw Error(gl.getShaderInfoLog(shader) + '\n\n\n' + code);
+			}
+
+			function createProgram(gl, vertexShader, fragmentShader) {
+				var program = gl.createProgram();
+				gl.attachShader(program, vertexShader);
+				gl.attachShader(program, fragmentShader);
+				gl.linkProgram(program);
+				var noErrors = gl.getProgramParameter(program, gl.LINK_STATUS);
+				if(noErrors) {
+					return program;
+				}
+
+				throw Error(gl.getProgramInfoLog(program));
+			}
+
+			function resize() {
+				// setting width and height to fullscreen
+				width = window.innerWidth;
+				height = window.innerHeight;
+				// setting canvas dimensions
+				canvas.width = width;
+				canvas.height = height;
+				// setting webgl viewport to
+				// x: 0, y: 0, w: width, h: height
+				gl.viewport(0, 0, width, height);
+			}
+
+			// getting canvas and webgl context
+			var canvas = document.getElementById('canvas');
+			var gl = canvas.getContext('webgl2');
+
+			// setting canvas and webgl width and height
+			var width;
+			var height;
+			resize();
+
+			// checking if gl is null (browser may not support webgl)
+			if(!gl) {
+				alert('your browser does\'t support shaders');
+			}
+
+			// getting vertex and fragment shaders code and creating the actual shader
+			var vertexShaderCode = document.getElementById('vertex-shader').innerHTML;
+			var fragmentShaderCode = document.getElementById('fragment-shader').innerHTML;
+
+			var vertexShader = createShader(gl, gl.VERTEX_SHADER, vertexShaderCode);
+			var fragmentShader = createShader(gl, gl.FRAGMENT_SHADER, fragmentShaderCode);
+
+			// creating and using program
+			var program = createProgram(gl, vertexShader, fragmentShader);
+			gl.useProgram(program);
+
+			// getting resolution uniform location and setting it to vec2(width, height)
+			var resolutionUniformLocation = gl.getUniformLocation(program, 'resolution');
+			gl.uniform2f(resolutionUniformLocation, width, height);
+
+			// finding the location of the position attribute in the program and setting it on
+			var positionAttributeLocation = gl.getAttribLocation(program, 'position');
+			gl.enableVertexAttribArray(positionAttributeLocation);
+
+			// creating and binding positionBuffer
+			var positionBuffer = gl.createBuffer();
+			gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+
+			// 6 2d vectors
+			var positions = new Float32Array([
+				-1, -1,
+				1, -1,
+				-1, 1,
+				1, 1,
+				1, -1,
+				-1, 1
+			]);
+			// setting positionBuffer data
+			gl.bufferData(gl.ARRAY_BUFFER, positions, gl.STATIC_DRAW);
+
+			// Tell the attribute how to get data out of positionBuffer (ARRAY_BUFFER)
+			var size = 2; // the positionBuffer is composed of 2d vectors
+			var type = gl.FLOAT; // the data is 32bit floats
+			var normalize = false; // don't normalize the data
+			var stride = 0; // 0 = move forward size * sizeof(type) each iteration to get the next position --- idk what this means
+			var offset = 0; // start at the beginning of the buffer
+			gl.vertexAttribPointer(positionAttributeLocation, size, type, normalize, stride, offset);
+
+			var primitiveType = gl.TRIANGLES;
+			var offset = 0;
+			var count = positions.length / size; // amount of vectors
+			gl.drawArrays(primitiveType, offset, count);
+
+			// checking if passive is avaible
+			let passive = false;
+			try {
+				window.addEventListener('event-listener', null, Object.defineProperty({}, 'passive', {get: () => passive = {passive: true}}));
+			} catch(err) {}
+
+			// adding an event listener to make the screen always be full size
+			window.addEventListener('resize', resize, passive);
+		</script>
+	</body>
+</html>

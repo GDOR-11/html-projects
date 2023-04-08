@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang = 'pt-BR'>
+	<head>
+		<meta charset = 'utf-8' name = 'viewport' content = 'width = device-width, initial-scale = 1'>
+		<title>fourier series</title>
+		<style>
+			body {
+				margin: 0px;
+				overflow: hidden;
+			}
+			canvas {
+				background-color: #000;
+			}
+		</style>
+	</head>
+	<body>
+		<canvas id = 'canvas'></canvas>
+		<script>
+			var canvas = document.getElementById('canvas');
+			var pincel = canvas.getContext('2d');
+			var largura = window.innerWidth;
+			var altura = window.innerHeight;
+			canvas.width = largura;
+			canvas.height = altura;
+			window.onresize = function() {
+				largura = window.innerWidth;
+				altura = window.innerHeight;
+				canvas.width = largura;
+				canvas.height = altura;
+			}
+			var aproximacao1 = [];
+			var aproximacao2 = [];
+			var t = 0;
+			var raio = 100;
+			var offsetx = 200;
+			var offsety1 = altura / 4;
+			var offsety2 = 3 * altura / 4;
+			var offset = largura / 2;
+			function renderizar() {
+				pincel.clearRect(0, 0, largura, altura);
+				var x = 0;
+				var y = 0;
+				for(var i = 0;i < 50;i++) {
+					var n = 2 * i + 1;
+					var proximo_x = x + raio * Math.cos(n * t) / n;
+					var proximo_y = y + raio * Math.sin(n * t) / n;
+					pincel.strokeStyle = 'white';
+					pincel.beginPath();
+					pincel.moveTo(x + offsetx, y + offsety1);
+					pincel.lineTo(proximo_x + offsetx, proximo_y + offsety1);
+					pincel.stroke();
+					pincel.strokeStyle = 'rgba(255, 255, 255, 0.4)';
+					pincel.beginPath();
+					pincel.arc(x + offsetx, y + offsety1, Math.hypot(proximo_x - x, proximo_y - y), 0, 2 * Math.PI);
+					pincel.stroke();
+					x = proximo_x;
+					y = proximo_y;
+				}
+				aproximacao1.unshift(y);
+				pincel.strokeStyle = 'white';
+				pincel.beginPath();
+				pincel.moveTo(x + offsetx, y + offsety1);
+				for(var i = 0;i < aproximacao1.length;i++) {
+					pincel.lineTo(offset + i, aproximacao1[i] + offsety1);
+				}
+				pincel.stroke();
+				aproximacao1.length = largura - offset;
+
+				x = 0;
+				y = 0;
+				for(var i = 0;i < 100;i++) {
+					var n = i + 1;
+					var proximo_x = x + raio * Math.cos(n * t) / n;
+					var proximo_y = y + raio * Math.sin(n * t) / n;
+					pincel.strokeStyle = 'white';
+					pincel.beginPath();
+					pincel.moveTo(x + offsetx, y + offsety2);
+					pincel.lineTo(proximo_x + offsetx, proximo_y + offsety2);
+					pincel.stroke();
+					pincel.strokeStyle = 'rgba(255, 255, 255, 0.4)';
+					pincel.beginPath();
+					pincel.arc(x + offsetx, y + offsety2, Math.hypot(proximo_x - x, proximo_y - y), 0, 2 * Math.PI);
+					pincel.stroke();
+					x = proximo_x;
+					y = proximo_y;
+				}
+				aproximacao2.unshift(y);
+				pincel.strokeStyle = 'white';
+				pincel.beginPath();
+				pincel.moveTo(x + offsetx, y + offsety2);
+				for(var i = 0;i < aproximacao2.length;i++) {
+					pincel.lineTo(offset + i, aproximacao2[i] + offsety2);
+				}
+				pincel.stroke();
+				aproximacao2.length = largura - offset;
+				t += 1 / 60;
+				requestAnimationFrame(renderizar);
+			}
+			requestAnimationFrame(renderizar);
+		</script>
+	</body>
+</html>

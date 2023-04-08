@@ -1,0 +1,219 @@
+<head><link rel = 'icon' href = 'https://cdn.pixabay.com/photo/2016/11/11/14/49/minecraft-1816996_1280.png'></head>
+<body style = 'margin:0px;overflow:hidden;'>
+	<script src = 'http://threejs.org/build/three.min.js'></script>
+	<script src = 'https://raw.githubusercontent.com/mrdoob/three.js/dev/src/core/Raycaster.js'></script>
+	<script src = 'https://unpkg.com/noisejs@2.1.0/index.js'></script>
+	<script src = 'https://threejs.org/examples/js/controls/PointerLockControls.js'></script>
+	<script>
+		class Cubo {
+			constructor(cor, x, y, z) {
+				this.x = x;
+				this.y = y;
+				this.z = z;
+			    var material = new THREE.MeshStandardMaterial({color: cor});
+				this.cubo = new THREE.Mesh(geometria_bloco, material);
+				cena.add(this.cubo);
+				this.cubo.position.set(this.x, this.y, this.z);
+				this.cubo.userData = this;
+			}
+			// criar_ar(ar, cubos) {
+			// 	ar.push({x: this.x, y: this.y + 1, z: this.z});
+			// }
+		}
+		var renderizador = new THREE.WebGLRenderer();
+		var noise = new Noise(Math.random());
+		renderizador.setSize(document.body.clientWidth, document.body.clientHeight);
+		document.body.append(renderizador.domElement);
+
+		var fov = 90 * document.body.clientHeight / document.body.clientWidth;
+		var aspecto = document.body.clientWidth / document.body.clientHeight;
+		var maximo_perto = 0.1;
+		var maximo_longe = 8.988465674311579e+307;
+		var camera = new THREE.PerspectiveCamera(fov, aspecto, maximo_perto, maximo_longe);
+		while(true) {
+			camera.position.set(Math.random() * 100, 0, Math.random() * 100);
+			if(Math.round(noise.perlin2(Math.round(camera.position.x) / 30, Math.round(camera.position.z) / 30)) > 0) {
+				camera.position.y = Math.round(noise.perlin2(Math.round(camera.position.x) / 30, Math.round(camera.position.z) / 30) * 10) + 2;
+				break;
+			}
+		}
+		camera.lookAt(camera.position.x + 1, camera.position.y, camera.position.z);
+
+		var controles = new THREE.PointerLockControls(camera, document.body);
+		document.onpointerlockerror = function() {
+			controles.lock();
+			controles.lock();
+		}
+
+		var cena = new THREE.Scene();
+
+		var luz = new THREE.DirectionalLight(0xFFFFFF, 1);
+		luz.position.set(1, 1, 0);
+		cena.add(luz);
+		var luz2 = new THREE.AmbientLight(0xFFFFFF, 0.25);
+		cena.add(luz2);
+
+		var raycaster = new THREE.Raycaster();
+
+		var geometria_plano = new THREE.PlaneGeometry(100, 100, 100, 100);
+		var material_agua = new THREE.MeshBasicMaterial({color: 0x0000FF, side: THREE.DoubleSide, opacity: 0.5, transparent: true});
+		var agua = new THREE.Mesh(geometria_plano, material_agua);
+		cena.add(agua);
+		agua.position.x = 49.5;
+		agua.position.y = -0.65;
+		agua.position.z = 49.5;
+		agua.rotation.x = Math.PI / 2;
+
+		var geometria_bloco = new THREE.BoxBufferGeometry(1, 1, 1);
+
+		var lado_da_chunk = 100;
+
+		var cubos = [...Array(lado_da_chunk * lado_da_chunk).keys()];
+		// var ar = [...Array(lado_da_chunk * lado_da_chunk)];
+
+		cubos = cubos.map((index) => new Cubo(0x00FF00, Math.floor(index % lado_da_chunk), Math.round(noise.perlin2(Math.floor(index % lado_da_chunk) / 30, Math.floor(index / lado_da_chunk) / 30) * 10), Math.floor(index / lado_da_chunk)));
+		// for(var i = 0;i < lado_da_chunk;i++) {
+		// 	for(var j = 0;j < lado_da_chunk;j++) {
+		// 		var cubo = ;
+		// 		cubos.push(cubo);
+		// 		// cubo.criar_ar(ar);
+		// 	}
+		// }
+		// ar.map()
+
+		var colidiu = false;
+		var bateu_cabeca = false;
+		var velocidade = 0;
+		var aceleracao = 0.03;
+		var velocidade_maxima = 1;
+		var movimento = 'nenhum';
+
+		function cria_cubo(cor, x, y, z) {
+			var material = new THREE.MeshStandardMaterial({color: cor});
+			var cubo = new THREE.Mesh(geometria_bloco, material);
+			cena.add(cubo);
+			cubo.position.set(x, y, z);
+			return cubo;
+		}
+
+		function renderizar() {
+			identifica_teclas();
+			colidiu = false;
+			var bateucabeca = false;
+			for(var cubo of cubos) {
+				if(Math.round(camera.position.x) == cubo.x && Math.round(camera.position.z) == cubo.z && camera.position.y - 2 < cubo.y && camera.position.y > cubo.y) {
+					if(camera.position.y - cubo.y < 1.5) {
+						if(camera.position.y - cubo.y > 0.75) {
+							velocidade_y = -0.1125;
+							velocidade = 0;
+						} else if(!bateu_cabeca) {
+							bateucabeca = true;
+							console.log('foi');
+							velocidade_y = 1;
+						}
+					}
+					colidiu = true;
+				}
+			}
+			bateu_cabeca = bateucabeca;
+			if(!colidiu) {
+				velocidade_y += 0.01;
+			} else {
+				if(velocidade_y > 0) {
+					velocidade_y = 0;
+				}
+			}
+			camera.position.y -= velocidade_y;
+			renderizador.render(cena, camera);
+			requestAnimationFrame(renderizar);
+		}
+		var velocidade_y = 0;
+		requestAnimationFrame(renderizar);
+
+		function identifica_teclas() {
+			olhando_para[0] = Math.cos(rotx) * Math.cos(roty) + camera.position.x;
+			olhando_para[1] = Math.sin(rotx) + camera.position.y;
+			olhando_para[2] = Math.cos(rotx) * Math.sin(roty) + camera.position.z;
+			if(teclas_pressionadas.includes(32) && colidiu) {
+				velocidade_y = -0.15
+			}
+			if(teclas_pressionadas.some((tecla) => tecla == 87 || tecla == 68 || tecla == 83 || tecla == 65)) {
+				velocidade += aceleracao;
+				velocidade = Math.min(velocidade, velocidade_maxima);
+				if(teclas_pressionadas.includes(87)) {
+					movimento = 'frente';
+					controles.moveForward(velocidade / 10);
+				}
+				if(teclas_pressionadas.includes(68)) {
+					movimento = 'direita';
+					controles.moveRight(velocidade / 10);
+				}
+				if(teclas_pressionadas.includes(83)) {
+					movimento = 'tras';
+					controles.moveForward(-velocidade / 10);
+				}
+				if(teclas_pressionadas.includes(65)) {
+					movimento = 'esquerda';
+					controles.moveRight(-velocidade / 10);
+				}
+			} else {
+				velocidade = 0;
+				movimento = 'nenhum';
+			}
+			if(teclas_pressionadas.includes(70)) {
+				velocidade_maxima = 2;
+			} else {
+				velocidade_maxima = 1;
+			}
+		}
+		var teclas_pressionadas = [];
+		var olhando_para = [0, 0, 0];
+		var roty = 0;
+		var rotx = 0;
+		document.onkeydown = function(event) {
+			if(teclas_pressionadas.indexOf(event.keyCode) == -1) {
+				teclas_pressionadas.push(event.keyCode);
+			}
+		}
+		document.onkeyup = function(event) {
+			teclas_pressionadas.splice(teclas_pressionadas.indexOf(event.keyCode), 1);
+		}
+
+		document.onmousedown = function() {
+			if(!controles.isLocked) {
+				controles.lock();
+				controles.isLocked = true;
+			} else {
+				raycaster.setFromCamera(new THREE.Vector2(0, 0), camera);
+				var intercecoes = raycaster.intersectObjects(cubos.map(cubo => cubo.cubo));
+				if(intercecoes.length > 0) {
+					var intercecao = intercecoes[0];
+					switch(event.button) {
+						case 0:
+							var x = Math.round((5 * intercecao.point.x - intercecao.object.position.x) / 4);
+							var y = Math.round((5 * intercecao.point.y - intercecao.object.position.y) / 4);
+							var z = Math.round((5 * intercecao.point.z - intercecao.object.position.z) / 4);
+							if(cubos.every(cubo => {return cubo.x != x || cubo.y != y || cubo.z != z}) || (Math.round(camera.position.x) != x && (Math.round(camera.position.y) != y || Math.round(camera.position.y) - 1 != y) && Math.round(camera.position.z) != z)) {
+								var cubo = new Cubo(0xFFFFFF, x, y, z);
+								cubos.push(cubo);
+								cena.add(cubo.cubo);
+							}
+							break;
+						case 2:
+							var cubo = intercecao.object;
+							cubos.splice(cubos.indexOf(cubo.userData), 1);
+							cena.remove(cubo);
+							break;
+					}
+				}
+			}
+		}
+	</script>
+	<img id = 'foco' src = 'https://upload.wikimedia.org/wikipedia/commons/5/5b/Sinal_de_mais.svg' style = 'position:absolute;top:48.6979166666666667%;left:47.2299168975069252%;width:1.3020833333333333%;height:2.7700831024930748%;'>
+	<script>
+		var foco = document.getElementById('foco');
+		var lado = Math.min(document.body.clientWidth, document.body.clientHeight);
+		var tamanho = lado / 36.1;
+		foco.style = 'position: absolute;top: ' + (document.body.clientHeight - tamanho) / 2 + 'px;left: ' + (document.body.clientWidth - tamanho) / 2 + 'px;width: ' + tamanho + 'px;height: ' + tamanho + 'px;';
+	</script>
+</body>

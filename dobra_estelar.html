@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>dobra estelar</title>
+		<style>
+			body {
+				margin: 0px;
+				overflow: hidden;
+			}
+		</style>
+	</head>
+	<body>
+		<canvas id = 'canvas'></canvas>
+		<script>
+			class Estrela {
+				constructor() {
+					this.x = (Math.random() - 0.5) * largura * profundidade / 500;
+					this.y = (Math.random() - 0.5) * altura * profundidade / 500;
+					this.z = Math.random() * profundidade;
+					this.z_anterior = this.z;
+				}
+				mover() {
+					this.z_anterior = this.z;
+					this.z -= 4;
+					var x = 500 * this.x / this.z;
+					var y = 500 * this.y / this.z;
+					if(x < -largura / 2 || x > largura / 2 || y < -altura / 2 || y > altura / 2 || this.z <= 0) {
+						this.z = profundidade;
+						this.z_anterior = this.z;
+						this.x = (Math.random() - 0.5) * largura * profundidade / 500;
+						this.y = (Math.random() - 0.5) * altura * profundidade / 500;
+					}
+				}
+				desenhar() {
+					pincel.strokeStyle = 'rgba(255, 255, 255, ' + (1 - this.z / profundidade) + ')';
+					pincel.beginPath();
+					pincel.moveTo(500 * this.x / this.z_anterior, 500 * this.y / this.z_anterior);
+					pincel.lineTo(500 * this.x / this.z, 500 * this.y / this.z);
+					pincel.stroke();
+					pincel.fillStyle = 'blue';
+				}
+			}
+			var canvas = document.getElementById('canvas');
+			var pincel = canvas.getContext('2d');
+			var largura = window.innerWidth;
+			var altura = window.innerHeight;
+			var profundidade = 100;
+			canvas.width = largura;
+			canvas.height = altura;
+			pincel.translate(largura / 2, altura / 2);
+			window.onresize = function() {
+				largura = window.innerWidth;
+				altura = window.innerHeight;
+				canvas.width = largura;
+				canvas.height = altura;
+				pincel.translate(largura / 2, altura / 2);
+			}
+			var estrelas = [];
+			for(var i = 0;i < 500;i++) {
+				estrelas.push(new Estrela());
+			}
+			function renderizar() {
+				pincel.fillStyle = 'black';
+				pincel.fillRect(-largura / 2, -altura / 2, largura, altura);
+				for(var estrela of estrelas) {
+					estrela.mover();
+					estrela.desenhar();
+				}
+				requestAnimationFrame(renderizar);
+			}
+			requestAnimationFrame(renderizar);
+
+			if(document.fullscreenEnabled) {
+				document.onmousedown = function(event) {
+					if(document.fullscreenElement) {
+						document.exitFullscreen();
+					} else {
+						document.documentElement.requestFullscreen();
+						document.body.style.cursor = 'none';
+					}
+				}
+				document.onfullscreenchange = function(event) {
+					if(!document.fullscreenElement) {
+						document.body.style.cursor = 'context-menu';
+					}
+				}
+			}
+		</script>
+	</body>
+</html>

@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang = 'pt-BR'>
+	<head>
+		<meta charset = 'utf-8' name = 'viewport' content = 'width = device-width, initial-scale = 1'>
+		<title>xadrez</title>
+		<style>
+			body {
+				margin: 0px;
+				overflow: hidden;
+			}
+		</style>
+	</head>
+	<body>
+		<canvas id = 'canvas' style = 'position: absolute;'></canvas>
+		<script>
+			function index_21(x, y) {
+				return x + 8 * y;
+			}
+			function index_12(i) {
+				return {x: i % 8, y: Math.floor(i / 8)};
+			}
+			function nome_peca(peca) {
+				return peca.slice(0, peca.match('_').index);
+			}
+			function tirar_numero_identificacao(peca) {
+				if((peca.match(/\d/) || {index: -1}).index == peca.length - 1) {
+					return peca.slice(0, peca.length - 2);
+				}
+				return peca;
+			}
+			function cor_peca(peca) {
+				var nome = tirar_numero_identificacao(peca.slice(peca.match('_').index + 1, peca.length));
+				return nome.slice(0, nome.length - 1) + 'a';
+			}
+			function posicao_valida(cor, x, y) {
+				var casa = tabuleiro[index_21(x, y)];
+				if(x < 0 || x > 7 || y < 0 || y > 7 || (ids[casa] != undefined && cor_peca(ids[casa]) == cor)) {
+					return false;
+				}
+				return true;
+			}
+			function movimentos_possiveis(peca) {
+				if(peca == undefined) {
+					return [];
+				}
+				var movimentos = new Uint8ClampedArray(27);
+				for(var i = 0;i < movimentos.length;i++) {
+					movimentos[i] = 255;
+				}
+				var index = 0;
+				var nome = nome_peca(peca);
+				var pos_peca = {
+					x: posicoes[pecas[peca]],
+					y: posicoes[pecas[peca] + 1]
+				}
+				var cor = cor_peca(peca);
+				var movimento_anterior;
+				if(nome == 'rainha' || nome == 'torre') {
+					for(var dx = 1;posicao_valida(cor, pos_peca.x + dx, pos_peca.y) && (tabuleiro[movimento_anterior] || 255) == 255;dx++) {
+						movimento_anterior = index_21(pos_peca.x + dx, pos_peca.y);
+						movimentos[index++] = movimento_anterior;
+					}
+					movimento_anterior = undefined;
+					for(var dx = 1;posicao_valida(cor, pos_peca.x - dx, pos_peca.y) && (tabuleiro[movimento_anterior] || 255) == 255;dx++) {
+						movimento_anterior = index_21(pos_peca.x - dx, pos_peca.y);
+						movimentos[index++] = movimento_anterior;
+					}
+					movimento_anterior = undefined;
+					for(var dy = 1;posicao_valida(cor, pos_peca.x, pos_peca.y + dy) && (tabuleiro[movimento_anterior] || 255) == 255;dy++) {
+						movimento_anterior = index_21(pos_peca.x, pos_peca.y + dy);
+						movimentos[index++] = movimento_anterior;
+					}
+					movimento_anterior = undefined;
+					for(var dy = 1;posicao_valida(cor, pos_peca.x, pos_peca.y - dy) && (tabuleiro[movimento_anterior] || 255) == 255;dy++) {
+						movimento_anterior = index_21(pos_peca.x, pos_peca.y - dy);
+						movimentos[index++] = movimento_anterior;
+					}
+				}
+				if(nome == 'rainha' || nome == 'bispo') {
+					movimento_anterior = undefined;
+					for(var dxy = 1;posicao_valida(cor, pos_peca.x + dxy, pos_peca.y + dxy) && (tabuleiro[movimento_anterior] || 255) == 255;dxy++) {
+						movimento_anterior = index_21(pos_peca.x + dxy, pos_peca.y + dxy);
+						movimentos[index++] = movimento_anterior;
+					}
+					movimento_anterior = undefined;
+					for(var dxy = 1;posicao_valida(cor, pos_peca.x - dxy, pos_peca.y + dxy) && (tabuleiro[movimento_anterior] || 255) == 255;dxy++) {
+						movimento_anterior = index_21(pos_peca.x - dxy, pos_peca.y + dxy);
+						movimentos[index++] = movimento_anterior;
+					}
+					movimento_anterior = undefined;
+					for(var dxy = 1;posicao_valida(cor, pos_peca.x - dxy, pos_peca.y - dxy) && (tabuleiro[movimento_anterior] || 255) == 255;dxy++) {
+						movimento_anterior = index_21(pos_peca.x - dxy, pos_peca.y - dxy);
+						movimentos[index++] = movimento_anterior;
+					}
+					movimento_anterior = undefined;
+					for(var dxy = 1;posicao_valida(cor, pos_peca.x + dxy, pos_peca.y - dxy) && (tabuleiro[movimento_anterior] || 255) == 255;dxy++) {
+						movimento_anterior = index_21(pos_peca.x + dxy, pos_peca.y - dxy);
+						movimentos[index++] = movimento_anterior;
+					}
+				}
+				if(nome == 'rei') {
+					for(var dx = -1;dx <= 1;dx++) {
+						for(var dy = -1;dy <= 1;dy++) {
+							if(dx == 0 && dy == 0) {
+								continue;
+							}
+							var x = pos_peca.x + dx;
+							var y = pos_peca.y + dy;
+							if(posicao_valida(cor, x, y)) {
+								movimentos[index++] = index_21(x, y);
+							}
+						}
+					}
+				}
+				if(nome == 'cavalo') {
+					for(var rx of [-1, 1]) {
+						for(var ry of [-1, 1]) {
+							var x = pos_peca.x + 1 * rx;
+							var y = pos_peca.y + 2 * ry;
+							if(posicao_valida(cor, x, y)) {
+								movimentos[index++] = index_21(x, y);
+							}
+							x = pos_peca.x + 2 * rx;
+							y = pos_peca.y + 1 * ry;
+							if(posicao_valida(cor, x, y)) {
+								movimentos[index++] = index_21(x, y);
+							}
+						}
+					}
+				}
+				if(nome == 'peao') {
+					if(cor == 'branca') {
+						var dy = 1;
+					} else {
+						var dy = -1;
+					}
+					var x = pos_peca.x;
+					var y = pos_peca.y + dy;
+					var indx = index_21(x, y);
+					if(tabuleiro[indx] == 255 && posicao_valida(cor, x, y)) {
+						movimentos[index++] = indx;
+					}
+					x = pos_peca.x + 1;
+					y = pos_peca.y + dy;
+					indx = index_21(x, y);
+					if(tabuleiro[indx] != 255 && posicao_valida(cor, x, y)) {
+						movimentos[index++] = indx;
+					}
+					x = pos_peca.x - 1;
+					y = pos_peca.y + dy;
+					indx = index_21(x, y);
+					if(tabuleiro[indx] != 255 && posicao_valida(cor, x, y)) {
+						movimentos[index++] = indx;
+					}
+					if(pos_peca.y == 3.5 - 2.5 * dy) {
+						x = pos_peca.x;
+						y = pos_peca.y + 2 * dy;
+						var y2 = pos_peca.y + dy;
+						indx = index_21(x, y);
+						indx2 = index_21(x, y2);
+						if(tabuleiro[indx] == 255 && tabuleiro[indx2] == 255 && posicao_valida(cor, x, y)) {
+							movimentos[index++] = indx;
+						}
+					}
+				}
+				return movimentos;
+			}
+			function renderizar(peca_movida) {
+				for(var i = 0;i < 8;i++) {
+					for(var j = 0;j < 8;j++) {
+						pincel.fillStyle = (i + j) % 2 == 0 ? cor_brancas : cor_pretas;
+						pincel.fillRect(min * i / 8, min * j / 8, min / 8, min / 8);
+					}
+				}
+				for(var movimento of movimentos_possiveis(peca_movida)) {
+					if(movimento != 255) {
+						var pos = index_12(movimento);
+						if(tabuleiro[movimento] == 255) {
+							pincel.strokeStyle = 'blue';
+							pincel.lineJoin = 'round';
+							pincel.lineWidth = 25;
+							pincel.strokeRect(min * (0.5 + pos.x) / 8, min * (7.5 - pos.y) / 8, 0.3, 0.3);
+						} else {
+							pincel.strokeStyle = 'red';
+							pincel.lineJoin = 'miter';
+							pincel.lineWidth = 5;
+							pincel.strokeRect(min * pos.x / 8 + 2.5, min * (7 - pos.y) / 8 + 2.5, min / 8 - 5, min / 8 - 5);
+						}
+					}
+				}
+				for(var peca in pecas) {
+					if(peca != peca_movida) {
+						var img = imagens[peca];
+						pincel.drawImage(img, min * posicoes[pecas[peca]] / 8, min * (7 - posicoes[pecas[peca] + 1]) / 8, min / 8, min / 8);
+					}
+				}
+			}
+			function set_dimensions() {
+				largura = window.innerWidth;
+				altura = window.innerHeight;
+				min = Math.min(altura, largura);
+				max = Math.max(altura, largura);
+				canvas.width = min;
+				canvas.height = min;
+				if(max == largura) {
+					canvas.style.left = (largura - altura) / 2 + 'px';
+					canvas.style.top = '0px';
+				} else {
+					canvas.style.left = '0px';
+					canvas.style.top = (altura - largura) / 2 + 'px';
+				}
+			}
+			var canvas = document.getElementById('canvas');
+			var pincel = canvas.getContext('2d');
+			set_dimensions();
+			window.onresize = function() {
+				set_dimensions();
+				renderizar();
+			}
+			var pecas = { // index das pecas no array posicoes
+				rei_branco: 0,
+				rainha_branca: 2,
+				torre_branca_1: 4,
+				torre_branca_2: 6,
+				cavalo_branco_1: 8,
+				cavalo_branco_2: 10,
+				bispo_branco_1: 12,
+				bispo_branco_2: 14,
+				peao_branco_1: 16,
+				peao_branco_2: 18,
+				peao_branco_3: 20,
+				peao_branco_4: 22,
+				peao_branco_5: 24,
+				peao_branco_6: 26,
+				peao_branco_7: 28,
+				peao_branco_8: 30,
+				rei_preto: 32,
+				rainha_preta: 34,
+				torre_preta_1: 36,
+				torre_preta_2: 38,
+				cavalo_preto_1: 40,
+				cavalo_preto_2: 42,
+				bispo_preto_1: 44,
+				bispo_preto_2: 46,
+				peao_preto_1: 48,
+				peao_preto_2: 50,
+				peao_preto_3: 52,
+				peao_preto_4: 54,
+				peao_preto_5: 56,
+				peao_preto_6: 58,
+				peao_preto_7: 60,
+				peao_preto_8: 62
+			}
+			var ids = {};
+			for(var peca in pecas) {
+				ids[pecas[peca]] = peca;
+			}
+			var quantidade_imagens_carregadas = 0;
+			var imagens = {};
+			for(var peca in pecas) {
+				var img = new Image();
+				img.src = tirar_numero_identificacao(peca) + '.png';
+				img.onload = function() {
+					if(++quantidade_imagens_carregadas == 32) {
+						renderizar();
+					}
+				}
+				imagens[peca] = img;
+			}
+			var posicoes = new Uint8Array([4, 0, 3, 0, 0, 0, 7, 0, 1, 0, 6, 0, 2, 0, 5, 0, 0, 1, 1, 1, 2, 1, 3, 1, 4, 1, 5, 1, 6, 1, 7, 1, 4, 7, 3, 7, 0, 7, 7, 7, 1, 7, 6, 7, 2, 7, 5, 7, 0, 6, 1, 6, 2, 6, 3, 6, 4, 6, 5, 6, 6, 6, 7, 6]);
+			var tabuleiro = new Uint8Array(64);
+			for(var i = 0;i < tabuleiro.length;i++) {
+				tabuleiro[i] = 255;
+			}
+			for(var peca in pecas) {
+				var x = posicoes[pecas[peca]];
+				var y = posicoes[pecas[peca] + 1];
+				tabuleiro[index_21(x, y)] = pecas[peca];
+			}
+
+			var cor_brancas = 'rgb(210, 180, 140)';
+			var cor_pretas = 'rgb(75, 54, 33)';
+			var cor_de_fundo = 'rgb(184, 115, 51)';
+			document.body.style['background-color'] = cor_de_fundo;
+			
+			var passive = false;
+			try {
+				window.addEventListener('event-listener', null, Object.defineProperty({}, 'passive', {get: () => passive = {passive: true}}));
+			} catch(error) {}
+
+			var peca_sendo_movida;
+			canvas.addEventListener('mousedown', function(event) {
+				var x = Math.floor(8 * event.layerX / min);
+				var y = Math.floor(8 * (1 - event.layerY / min));
+				peca_sendo_movida = ids[tabuleiro[index_21(x, y)]];
+			}, passive);
+			canvas.addEventListener('mouseup', function(event) {
+				var x = Math.floor(8 * event.layerX / min);
+				var y = Math.floor(8 * (1 - event.layerY / min));
+				if(movimentos_possiveis(peca_sendo_movida).includes(index_21(x, y))) {
+					var id = pecas[peca_sendo_movida];
+					tabuleiro[index_21(posicoes[id], posicoes[id + 1])] = 255;
+					posicoes[id] = x;
+					posicoes[id + 1] = y;
+					var index = index_21(posicoes[id], posicoes[id + 1]);
+					if(tabuleiro[index] != 255) {
+						posicoes[tabuleiro[index]] = 255;
+						posicoes[tabuleiro[index] + 1] = 255;
+					}
+					tabuleiro[index] = id;
+				}
+				peca_sendo_movida = undefined;
+				renderizar();
+			}, passive);
+			canvas.addEventListener('mousemove', function(event) {
+				if(peca_sendo_movida != undefined) {
+					renderizar(peca_sendo_movida);
+					var img = imagens[peca_sendo_movida];
+					pincel.drawImage(img, event.layerX - min / 16, event.layerY - min / 16, min / 8, min / 8);
+				}
+			}, passive);
+		</script>
+	</body>
+</html>

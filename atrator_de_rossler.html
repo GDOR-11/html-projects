@@ -1,0 +1,35 @@
+<canvas id = 'canvas' width = 1536 height = 721></canvas>
+<style>
+	body {
+		overflow: hidden;
+		margin-top: 0px;
+		margin-left: 0px;
+	}
+</style>
+<script>
+	var pincel = document.getElementById('canvas').getContext('2d');
+	function calcula_proximo_ponto() {
+		var dx = (-y - z) * dt;
+		var dy = (x + a * y) * dt;
+		var dz = (b + z * (x - c)) * dt;
+		x += dx;
+		y += dy;
+		z += dz;
+	}
+	var a = 0.2;
+	var b = 0.2;
+	var c = 5.7;
+	var dt = 0.00001;
+	var x = 0.01;
+	var y = 0;
+	var z = 0;
+	setInterval(function() {
+		pincel.beginPath();
+		pincel.moveTo(x * 500 / ((y * -Math.sqrt(2) / 2 + z * -Math.sqrt(2) / 2) + 50) + 768, -((y * -Math.sqrt(2) / 2 - z * -Math.sqrt(2) / 2) * 500 / ((y * -Math.sqrt(2) / 2 + z * -Math.sqrt(2) / 2) + 50)) + 360.5);
+		for(var i = 0;i < 1000;i++) {
+			calcula_proximo_ponto();
+		}
+		pincel.lineTo(x * 500 / ((y * -Math.sqrt(2) / 2 + z * -Math.sqrt(2) / 2) + 50) + 768, -((y * -Math.sqrt(2) / 2 - z * -Math.sqrt(2) / 2) * 500 / ((y * -Math.sqrt(2) / 2 + z * -Math.sqrt(2) / 2) + 50)) + 360.5);
+		pincel.stroke();
+	}, 1);
+</script>

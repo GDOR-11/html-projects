@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset = 'utf-8'>
+		<title>gráficos</title>
+		<style>
+			body {
+				margin: 0px;
+				overflow: hidden;
+			}
+		</style>
+	</head>
+	<body>
+		<canvas id = 'canvas'></canvas>
+		<div style = 'background-color: #fff;'>
+			<input id = 'funcao' style = 'position: absolute;top: 14px;left: 5px;'>
+			<button id = 'adicionar-grafico' style = 'position: absolute;top: 0px;left: 175px;background-color: #fff;border: none;'>
+				<img width = 50 src = 'http://www.onesky.com.br/wp-content/uploads/2015/10/botao-mais1-300x300.png' draggable = 'false'>
+			</button>
+		</div>
+		<script>
+			var funcoes = ['tan', 'sin', 'cos', 'atan', 'asin', 'acos', 'sqrt', 'round', 'abs', 'acosh', 'asinh', 'atanh', 'cbrt', 'ceil', 'cosh', 'exp', 'floor', 'log2', 'log10', 'sign', 'sinh', 'tanh'];
+			for(var f of funcoes) {
+				this[f] = Math[f];
+			}
+			function pow(x, y) {
+				return Math.pow(x, y);
+			}
+			function root(x, y) {
+				return Math.pow(x, 1 / y);
+			}
+			function ln(x) {
+				return Math.log(x);
+			}
+			function log(x = 10, y) {
+				return Math.log(y) / Math.log(x);
+			}
+			const e = Math.E;
+			const pi = Math.PI;
+			const tau = 2 * pi;
+			const sqrt2 = Math.SQRT2;
+			function gerar_grafico() {
+				pincel.clearRect(0, 0, largura, altura);
+				pincel.beginPath();
+				pincel.moveTo(0, altura / 2 - offsety);
+				pincel.lineTo(largura, altura / 2 - offsety);
+				pincel.moveTo(largura / 2 - offsetx, 0);
+				pincel.lineTo(largura / 2 - offsetx, altura);
+				pincel.stroke();
+				for(var equacao of equacoes) {
+					pincel.beginPath();
+					pincel.lineTo(0, altura / 2 - equacao((-largura / 2 + offsetx) / zoom) * zoom - offsety);
+					for(var x = 0;x <= largura;x++) {
+						var pos = (x - largura / 2 + offsetx) / zoom;
+						var desenhar = (x, y) => pincel.lineTo(x, y);
+						if(Math.abs(equacao(pos + h1) - equacao(pos)) > h2) {
+							for(var x_2 = x;x_2 < x + 1;x_2 += 0.1) {
+								var pos_2 = (x_2 - largura / 2 + offsetx) / zoom;
+								if(Math.abs(equacao(pos_2 + h1 / 10) - equacao(pos_2)) > h2) {
+									desenhar = (x, y) => pincel.moveTo(x, y);
+									return;
+								}
+							}
+						}
+						desenhar(x, altura / 2 - equacao(pos) * zoom - offsety);
+					}
+					pincel.stroke();
+				}
+			}
+			var canvas = document.getElementById('canvas');
+			var pincel = canvas.getContext('2d');
+			var largura = window.innerWidth;
+			var altura = window.innerHeight;
+			canvas.width = largura;
+			canvas.height = altura;
+			window.onresize = function() {
+				largura = window.innerWidth;
+				altura = window.innerHeight;
+				canvas.width = largura;
+				canvas.height = altura;
+				gerar_grafico();
+			}
+			var funcao = document.getElementById('funcao');
+			var adicionar_grafico = document.getElementById('adicionar-grafico');
+			var equacoes = [];
+			var h1 = 1e-10;
+			var h2 = 1e-7;
+			var zoom = 10;
+			var offsetx = 0;
+			var offsety = 0;
+			gerar_grafico();
+
+			var passive = false;
+			try {
+				window.addEventListener('event-listener', null, Object.defineProperty({}, 'passive', {get: () => passive = {passive: true}}));
+			} catch(error) {}
+
+			var pos_mouse = {x: 0, y: 0};
+			var mouse_pressionado = false;
+			canvas.addEventListener('mousedown', function(event) {
+				mouse_pressionado = true;
+			}, passive);
+			window.addEventListener('mouseup', function(event) {
+				mouse_pressionado = false;
+			}, passive);
+			window.addEventListener('mousemove', function(event) {
+				var ultima_pos_mouse = pos_mouse;
+				pos_mouse = {x: event.clientX, y: event.clientY};
+				if(mouse_pressionado) {
+					offsetx -= (pos_mouse.x - ultima_pos_mouse.x);
+					offsety -= (pos_mouse.y - ultima_pos_mouse.y);
+					gerar_grafico();
+				}
+			}, passive);
+			canvas.addEventListener('mousewheel', function(event) {
+				if(event.deltaY > 0) {
+					zoom /= 1.05;
+					offsetx = (offsetx + (largura / 2 - event.clientX) * 0.05) / 1.05;
+					offsety = (offsety + (altura / 2 - event.clientY) * 0.05) / 1.05;
+				} else {
+					zoom *= 1.05;
+					offsetx = (offsetx - (largura / 2 - event.clientX) * 0.05) * 1.05;
+					offsety = (offsety - (altura / 2 - event.clientY) * 0.05) * 1.05;
+				}
+				gerar_grafico();
+			}, passive);
+			funcao.addEventListener('input', function(event) {
+				gerar_grafico();
+			}, passive);
+			adicionar_grafico.addEventListener('click', function(event) {
+				try {
+					var equacao = eval('x => ' + document.getElementById('funcao').value);
+					equacao(0);
+					equacoes.push(equacao);
+					gerar_grafico();
+				} catch(error) {
+					alert('equação inválida');
+				}
+			}, passive);
+		</script>
+	</body>
+</html>

@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang = 'pt-BR'>
+	<head>
+		<meta charset = 'utf-8' name = 'viewport' content = 'width = device-width, initial-scale = 1'>
+		<title>collatz conjecture</title>
+	</head>
+	<body>
+		<div id = 'collatz'></div>
+		<script>
+			function inv_collatz(x, iter = 0n) {
+				if(x != 0n && iter < max_iter) {
+					return [inv_collatz(2n * (x - 1n) / 3n, iter + 1n), x, inv_collatz(2n * x, iter + 1n)];
+				} else {
+					return x;
+				}
+			}
+			function str(arr) {
+				arr = arr.flat(Infinity).sort((a, b) => Number(a - b));
+				arr = arr.filter((elmt, i) => !arr.slice(0, i).includes(elmt));
+				return arr;
+			}
+			var max_iter = 17n;
+			document.getElementById('collatz').innerHTML = str(inv_collatz(1n)) + '<br>convergem para 1';
+		</script>
+	</body>
+</html>

@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>mathologer times table</title>
+		<style>
+			body {
+				margin: 0px;
+				overflow: hidden;
+			}
+		</style>
+	</head>
+	<body>
+		<canvas id = 'canvas'></canvas>
+		<input id = 'slider_n' type = 'range' min = 0 max = 1000 value = 1000 oninput = 'atualizar()' style = 'position: absolute;top: 0px;left: 0px'>
+		<input id = 'slider_k' type = 'range' min = 0 max = 1000 value = 2 step = 0.01 oninput = 'atualizar()' style = 'position: absolute;top: 25px;left: 0px'>
+		<p id = 'n' style = 'color: white;position: absolute;top: 50px;left: 0px'></p>
+		<p id = 'k' style = 'color: white;position: absolute;top: 75px;left: 0px'></p>
+		<script>
+			function atualizar() {
+				n = slider_n.value;
+				slider_k.max = n;
+				k = slider_k.value;
+				texto_n.innerHTML = `n: ${n}`;
+				texto_k.innerHTML = `k: ${k}`;
+				pincel.strokeStyle = 'rgba(50, 50, 255, ' + 100 / n + ')'; // limite de alpha é exatamente 0.001961
+				pincel.fillRect(0, 0, largura, altura);
+				for(var i = 0;i < n;i++) {
+					pincel.beginPath();
+					pincel.moveTo(largura / 2 + r * Math.cos(i / n * 2 * Math.PI), altura / 2 - r * Math.sin(i / n * 2 * Math.PI));
+					pincel.lineTo(largura / 2 + r * Math.cos((i * k) / n * 2 * Math.PI), altura / 2 - r * Math.sin((i * k) / n * 2 * Math.PI));
+					pincel.stroke();
+				}
+			}
+			var canvas = document.getElementById('canvas');
+			var pincel = canvas.getContext('2d');
+			var largura = window.innerWidth;
+			var altura = window.innerHeight;
+			canvas.width = largura;
+			canvas.height = altura;
+			var slider_n = document.getElementById('slider_n');
+			var slider_k = document.getElementById('slider_k');
+			var texto_n = document.getElementById('n');
+			var texto_k = document.getElementById('k');
+			var r = Math.min(altura, largura) / 2;
+			var n;
+			var k;
+			pincel.fillStyle = 'black';
+			atualizar();
+		</script>
+	</body>
+</html>

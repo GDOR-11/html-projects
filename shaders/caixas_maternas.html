@@ -1,0 +1,125 @@
+<html>
+	<head>
+		<meta charset = 'UTF-8'>
+		<title>caixas maternas</title>
+		<style>
+			body {
+				margin: 0px;
+				overflow: hidden;
+			}
+		</style>
+		<script src = 'http://threejs.org/build/three.min.js'></script>
+	</head>
+	<body>
+		<script id = 'codigo_glsl' type = 'codigo_glsl'>
+			float min_dist = 0.01;
+			float max_dist = 19.0;
+			int max_passos = 50;
+			float k = 0.5;
+			uniform vec2 resolucao;
+			uniform vec3 pos_luz;
+			uniform vec3 pos_camera;
+			uniform float zoom;
+			uniform float tempo;
+			mat3 rotx(float a) {
+				return mat3(1.0, 0.0, 0.0, 0.0, cos(a), -sin(a), 0.0, sin(a), cos(a));
+			}
+			mat3 roty(float a) {
+				return mat3(cos(a), 0.0, sin(a), 0.0, 1.0, 0.0, -sin(a), 0.0, cos(a));
+			}
+			mat3 rotz(float a) {
+				return mat3(cos(a), -sin(a), 0.0, sin(a), cos(a), 0.0, 0.0, 0.0, 1.0);
+			}
+			float smin(float a, float b) {
+				float h = clamp(0.5 + 0.5 * (a - b) / k, 0.0, 1.0);
+				return mix(a, b, h) - k * h * (1.0 - h);
+			}
+			float distancia_cubo(vec3 ponto, vec3 rot, vec3 pos, float tamanho) {
+				vec3 p = (ponto - pos) * rotx(rot.x) * roty(rot.y) * rotz(rot.z);
+				return length(vec3(max(abs(p.x) - tamanho / 2.0, 0.0), max(abs(p.y) - tamanho / 2.0, 0.0), max(abs(p.z) - tamanho / 2.0, 0.0)));
+			}
+			float distancia(vec3 ponto) {
+				float dist_cubo_1 = distancia_cubo(ponto, vec3(tempo * 0.1, tempo * 0.7, tempo * 0.4), vec3(0.0, 0.0, 5.0), 1.0);
+				float dist = dist_cubo_1;
+				float dist_cubo_2 = distancia_cubo(ponto, vec3(tempo * 0.6, tempo * 0.2, tempo * 0.3), vec3(-1.0, 0.0, 5.0), 1.0);
+				dist = smin(dist, dist_cubo_2);
+				float dist_cubo_3 = distancia_cubo(ponto, vec3(tempo * 0.5, tempo * 0.9, tempo * 0.8), vec3(1.0, 0.0, 5.0), 1.0);
+				dist = smin(dist, dist_cubo_3);
+				return dist * 0.8;
+			}
+			float raymarch(vec3 origem_raio, vec3 dir_raio) {
+				float distancia_origem = 0.0;
+				for(int i = 0;i < max_passos;i++) {
+					vec3 ponto_atual = origem_raio + distancia_origem * dir_raio;
+					float distancia_atual = distancia(ponto_atual);
+					distancia_origem += distancia_atual;
+					if(distancia_atual < min_dist || distancia_origem > max_dist) {
+						break;
+					}
+				}
+				return distancia_origem;
+			}
+			vec3 calcula_perpendicular(vec3 ponto) {
+				float dist = distancia(ponto);
+				vec2 delta = vec2(0.001, 0.0);
+				vec3 resultado = dist - vec3(distancia(ponto - delta.xyy), distancia(ponto - delta.yxy), distancia(ponto - delta.yyx));
+				return normalize(resultado);
+			}
+			float iluminacao(vec3 ponto) {
+				vec3 vet_luz = normalize(pos_luz - ponto);
+				vec3 perpendicular = calcula_perpendicular(ponto);
+				float dist = raymarch(ponto + perpendicular * min_dist * 10.0, vet_luz);
+				float iluminacao = clamp(dot(perpendicular, vet_luz), 0.0, 1.0);
+				if(dist < length(pos_luz - ponto)) {
+					iluminacao /= 10.0;
+				}
+				return pow(iluminacao, 2.0);
+			}
+			void main() {
+				vec2 pos = (gl_FragCoord.xy - resolucao.xy / 2.0) / resolucao.y;
+				vec3 dir_raio = normalize(vec3(pos.x, pos.y, zoom));
+				float dist = raymarch(pos_camera, dir_raio);
+				vec3 ponto = pos_camera + dir_raio * dist;
+				float iluminacao = iluminacao(ponto);
+				gl_FragColor = vec4(iluminacao, iluminacao, iluminacao, 1.0);
+			}
+		</script>
+		<script>
+			var cena = new THREE.Scene();
+			var camera = new THREE.PerspectiveCamera(90 * document.body.clientHeight / document.body.clientWidth, document.body.clientWidth / document.body.clientHeight, 0.1, 1000);
+			var renderizador = new THREE.WebGLRenderer(document.body);
+			renderizador.setSize(document.body.clientWidth, document.body.clientHeight);
+			document.body.appendChild(renderizador.domElement);
+			var relogio = new THREE.Clock();
+
+			var cam = {
+				pos: new THREE.Vector3(0, 0, 0),
+				zoom: 1
+			}
+			var luz = new THREE.Vector3(0, 10, -10);
+
+			var inputs = {};
+			inputs.resolucao = {type: 'v2', value: new THREE.Vector2(document.body.clientWidth, document.body.clientHeight)};
+			inputs.pos_luz = {type: 'v3', value: luz};
+			inputs.pos_camera = {type: 'v3', value: cam.pos};
+			inputs.olhando_para = {type: 'v3', value: cam.olhando_para};
+			inputs.zoom = {type: 'f', value: cam.zoom};
+			inputs.tempo = {type: 'f', value: relogio.getElapsedTime()};
+
+			var codigo_glsl = document.getElementById('codigo_glsl').innerHTML;
+			var material = new THREE.ShaderMaterial({uniforms: inputs, fragmentShader: codigo_glsl});
+			var geometria = new THREE.PlaneGeometry(10, 10);
+			var tela = new THREE.Mesh(geometria, material);
+			cena.add(tela);
+			tela.position.z--;
+
+
+			function renderizar() {
+				inputs.tempo.value = relogio.getElapsedTime();
+				renderizador.render(cena, camera);
+				requestAnimationFrame(renderizar);
+			}
+			renderizar();
+		</script>
+	</body>
+</html>

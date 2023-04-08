@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang = 'pt-BR'>
+	<head>
+		<meta charset = 'utf-8' name = 'viewport' content = 'width = device-width, initial-scale = 1'>
+		<title>arrumação da mochila</title>
+		<style>
+			.margem {
+				margin: 20px;
+			}
+			.destaque {
+				background-color: #ffff00;
+			}
+			table {
+				border-collapse: collapse;
+				width: 750px;
+				height: 300px;
+			}
+			th {
+				border: 1.5px solid;
+			}
+		</style>
+	</head>
+	<body>
+		<table id = 'calendario' class = 'margem'>
+			<tr>
+				<th>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</th>
+				<th>segunda</th>
+				<th>terca</th>
+				<th>quarta</th>
+				<th>quinta</th>
+				<th>sexta</th>
+			</tr>
+			<tr>
+				<th>7:25</th>
+			</tr>
+			<tr>
+				<th>8:12</th>
+			</tr>
+			<tr>
+				<th>8:59</th>
+			</tr>
+			<tr class = 'destaque'>
+				<th>9:46</th>
+			</tr>
+			<tr>
+				<th>10:11</th>
+			</tr>
+			<tr>
+				<th>10:58</th>
+			</tr>
+			<tr>
+				<th>11:45</th>
+			</tr>
+			<tr class = 'destaque'>
+				<th>12:32</th>
+			</tr>
+		</table>
+		<ul id = 'materiais' style = 'position: absolute;left: 800px;top: 0px;'></ul>
+		<ul>
+			<li>absolutamente nada uhul</li>
+		</ul>
+		<script>
+			function adicionar_material(material) {
+				if(typeof material == 'function') {
+					material = material(materiais, aulas);
+				}
+				if(!materiais.includes(material)) {
+					materiais.push(material);
+					var li = document.createElement('li');
+					li.innerHTML = material;
+					DOM_materiais.append(li);
+				}
+			}
+			function resetar_materiais() {
+				DOM_materiais.innerHTML = '';
+				dia = (new Date().getDay() + 1) % 7;
+				aulas = calendario[dia];
+				materiais = [];
+				if(dia != 0 && dia != 6) {
+					adicionar_material('Esvaziar a mochila');
+				}
+				for(var aula of aulas) {
+					for(var material of materiais_por_aula[aula]) {
+						adicionar_material(material);
+					}
+				}
+				if(dia != 0 && dia != 6) {
+					adicionar_material('Caderno');
+					adicionar_material('Penal');
+					adicionar_material('Garrafa de água');
+					adicionar_material('Máscara');
+				}
+			}
+			var calendario = [
+				[],
+				['português', 'laboratório', 'artes', 'recreio', 'português', 'geografia', 'física', 'fim da aula'],
+				['filosofia', 'inglês', 'geografia', 'recreio', 'matemática', 'matemática', 'história', 'fim da aula'],
+				['pensamento computacional', 'artes', 'português', 'recreio', 'biologia', 'geografia', 'matemática', 'fim da aula'],
+				['produção textual', 'produção textual', 'química', 'recreio', 'matemática', 'história', 'inglês', 'fim da aula'],
+				['produção textual', 'história', 'português', 'recreio', 'matemática', 'educação física', 'educação física', 'fim da aula'],
+				[]
+			];
+			var materiais_por_aula = {
+				'artes': ['Livro de artes', 'Régua', 'Caderno de artes'],
+				'biologia': ['Livro de ciências'],
+				'educação física': ['Roupa de educação física'],
+				'filosofia': ['Livro de filosofia'],
+				'física': ['Livro de ciências'],
+				'geografia': ['Livro de geografia'],
+				'história': ['Livro de história'],
+				'inglês': ['Livro de inglês'],
+				'laboratório': ['Livro de ciências'],
+				'matemática': ['Livro de matemática', 'Régua'],
+				'pensamento computacional': [],
+				'português': ['Livro de português', 'Caderno de atividades'],
+				'produção textual': ['Livro de português', 'Caderno de atividades'],
+				'química': ['Livro de ciências', 'Tabela periódica'],
+				'recreio': [],
+				'fim da aula': []
+			}
+			var DOM_materiais = document.getElementById('materiais');
+
+			var DOM_calendario = document.getElementById('calendario');
+			for(var i = 1;i < calendario.length - 1;i++) {
+				for(var j = 0;j < calendario[i].length;j++) {
+					var th = document.createElement('th');
+					th.innerHTML = calendario[i][j];
+					DOM_calendario.children[0].children[j + 1].append(th);
+				}
+			}
+
+			var passive = false;
+			try {
+				window.addEventListener('event-listener', null, Object.defineProperty({}, 'passive', {get: () => passive = {passive: true}}));
+			} catch(error) {}
+
+			resetar_materiais();
+			document.addEventListener('visibilitychange', function(event) {
+				if(document.visibilityState == 'visible') {
+					resetar_materiais();
+					// alert('recadin');
+				}
+			}, passive);
+		</script>
+	</body>
+</html>

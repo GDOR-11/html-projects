@@ -1,0 +1,34 @@
+<meta charset="UTF-8">
+<canvas width="600" height="400"></canvas>
+<script>
+	var tela=document.querySelector("canvas");
+	var pincel=tela.getContext("2d");
+	var x=0
+	var y=0
+	function limpaTela(){
+    	pincel.clearRect(0, 0, 600, 400);
+    };
+    function desenhaCirculo(x, y, raio, cor){
+    pincel.fillStyle=cor;
+    	pincel.beginPath();
+    	pincel.arc(x, y, raio, 0, 2*Math.PI);
+    	pincel.fill();
+    };
+    function criaAlvo(){
+    	limpaTela();
+    	x=Math.round(Math.random()*540+30);
+    	y=Math.round(Math.random()*340+30);
+    	desenhaCirculo(x, y, 30, "red");
+    	desenhaCirculo(x, y, 20, "white");
+    	desenhaCirculo(x, y, 10, "red");
+    };
+    function verifica(evento){
+    	var xClicado=evento.pageX-tela.offsetLeft
+    	var yClicado=evento.pageY-tela.offsetTop
+    	if(xClicado>x-11&&xClicado<x+11&&yClicado>y-11&&yClicado<y+11){
+    		alert("VOCÊ CLICOU NO ALVO?")
+    	};
+    };
+    setInterval(criaAlvo, 750);
+    tela.onclick=verifica;
+</script>

@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>efeito doppler</title>
+		<style>
+			body {
+				margin: 0px;
+				overflow: hidden;
+			}
+		</style>
+	</head>
+	<body>
+		<canvas id = 'canvas'></canvas>
+		<script>
+			class Circulo {
+				constructor(x, y) {
+					this.x = x;
+					this.y = y;
+					this.r = 0;
+				}
+				desenhar() {
+					pincel.strokeStyle = 'rgba(0, 0, 255, ' + 10000 / (this.r * this.r) + ')';
+					pincel.beginPath();
+					pincel.arc(this.x, this.y, this.r, 0, 2 * Math.PI);
+					pincel.stroke();
+				}
+				crescer() {
+					this.r += 2;
+				}
+			}
+			var canvas = document.getElementById('canvas');
+			var pincel = canvas.getContext('2d');
+			var largura = window.innerWidth;
+			var altura = window.innerHeight;
+			canvas.width = largura;
+			canvas.height = altura;
+			var circulos = [];
+			var mouseX = largura / 2;
+			var mouseY = altura / 2;
+			var contador = 0;
+			setInterval(function() {
+				pincel.fillStyle = 'black';
+				pincel.fillRect(0, 0, largura, altura);
+				circulos.push(new Circulo(mouseX, mouseY));
+				contador++;
+				for(circulo of circulos) {
+					circulo.crescer();
+					circulo.desenhar();
+					if(circulo.r >= Math.hypot(largura, altura)) {
+						circulos.splice(circulos.indexOf(circulo), 1);
+					}
+				}
+			}, 10);
+			window.onmousemove = function(event) {
+				mouseX = event.clientX;
+				mouseY = event.clientY;
+			}
+		</script>
+	</body>
+</html>

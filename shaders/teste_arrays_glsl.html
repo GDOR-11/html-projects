@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>teste arrays</title>
+		<style>
+			body {
+				margin: 0px;
+				overflow: hidden;
+			}
+		</style>
+	</head>
+	<body>
+		<canvas id = 'canvas' width = 1536 height = 722></canvas>
+		<script id = 'vertex_glsl' type = 'vertex_glsl'>
+			attribute vec4 pos;
+ 
+			void main() {
+				gl_Position = pos;
+			}
+		</script>
+		<script id = 'fragment_glsl' type = 'fragment_glsl'>
+			uniform vec2 resolucao;
+			const float pi = 3.1415926535897932;
+			const float k = 128.0;
+
+			float interpolate(float x) {
+				return 1.0 / (1.0 + exp(-k * (x - 0.5)));
+			}
+			void main() {
+				float res = min(resolucao.x, resolucao.y);
+				vec2 uv = gl_FragCoord.xy / res;
+				float cor = 0.0;
+				for(int i = 0;i < quantidade_meta_balls;i++) {
+					float dist = length(uv - vec2(x_meta_balls[i], y_meta_balls[i]) / res);
+					cor += 0.000625 / (dist * dist);
+				}
+
+				// if(cor > 0.5) {
+				// 	cor = 1.0;
+				// } else {
+				// 	cor = 0.0;
+				// }
+				// gl_FragColor = vec4(vec3(cor), 1.0);
+
+				gl_FragColor = vec4(vec3(interpolate(cor)), 1.0);
+
+				// gl_FragColor = vec4(sin(cor), sin(cor + 2.0 * pi / 3.0), sin(cor + 4.0 * pi / 3.0), 1.0);
+			}
+		</script>
+		<script>
+			class MetaBall {
+				constructor(x, y) {
+					this.x = x || Math.random() * largura;
+					this.y = y || Math.random() * altura;
+					var a = Math.random() * 2 * Math.PI;
+					this.vx = 100 * Math.cos(a);
+					this.vy = 100 * Math.sin(a);
+				}
+				atualizar(dt) {
+					this.vx += 1000000 * dt / (this.x * this.x);
+					this.vx -= 1000000 * dt / ((largura - this.x) * (largura - this.x));
+					this.vy += 1000000 * dt / (this.y * this.y);
+					this.vy -= 1000000 * dt / ((altura - this.y) * (altura - this.y));
+					var v = Math.hypot(this.vx, this.vy);
+					this.vx *= 100 / v;
+					this.vy *= 100 / v;
+					this.x += this.vx * dt;
+					this.y += this.vy * dt;
+				}
+			}
+			var canvas = document.getElementById('canvas');
+			var largura = window.innerWidth;
+			var altura = window.innerHeight;
+			canvas.width = largura;
+			canvas.height = altura;
+			var gl = canvas.getContext('webgl');
+			window.onresize = function() {
+				largura = window.innerWidth;
+				altura = window.innerHeight;
+				canvas.width = largura;
+				canvas.height = altura;
+				gl.viewport(0, 0, largura, altura);
+				gl.uniform2f(localizacao_uniform_resolucao, canvas.width, canvas.height);
+			}
+
+			var quantidade_meta_balls = 100;
+
+			var codigo_vertex_shader = document.getElementById('vertex_glsl').innerHTML;
+			var codigo_fragment_shader = `precision highp float;uniform float x_meta_balls[${quantidade_meta_balls}];uniform float y_meta_balls[${quantidade_meta_balls}];const int quantidade_meta_balls = ${quantidade_meta_balls};` + document.getElementById('fragment_glsl').innerHTML;
+
+			function cria_shader(tipo, codigo) {
+				var shader = gl.createShader(tipo);
+				gl.shaderSource(shader, codigo);
+				gl.compileShader(shader);
+				if(gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+					return shader;
+				}
+				throw Error('\n\n' + gl.getShaderInfoLog(shader));
+				gl.deleteShader(shader);
+			}
+
+			var vertex_shader = cria_shader(gl.VERTEX_SHADER, codigo_vertex_shader);
+			var fragment_shader = cria_shader(gl.FRAGMENT_SHADER, codigo_fragment_shader);
+
+			function cria_programa(vertex_shader, fragment_shader) {
+				var programa = gl.createProgram();
+				gl.attachShader(programa, vertex_shader);
+				gl.attachShader(programa, fragment_shader);
+				gl.linkProgram(programa);
+				if(gl.getProgramParameter(programa, gl.LINK_STATUS)) {
+					return programa;
+				}
+				throw Error('\n\n' + gl.getProgramInfoLog(programa));
+				gl.deleteProgram(programa);
+			}
+
+			var programa = cria_programa(vertex_shader, fragment_shader);
+
+			var localizacao_atributo_pos = gl.getAttribLocation(programa, 'pos');
+
+			gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
+
+			var pontos = [
+				-1, -1,
+				-1,  1,
+				 1,  1,
+				-1, -1,
+				 1, -1,
+				 1,  1
+			];
+
+			gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(pontos), gl.STATIC_DRAW);
+
+			gl.useProgram(programa);
+
+			var localizacao_uniform_resolucao = gl.getUniformLocation(programa, 'resolucao');
+			gl.uniform2f(localizacao_uniform_resolucao, canvas.width, canvas.height);
+
+			var meta_balls = [];
+			for(var i = 0;i < quantidade_meta_balls;i++) {
+				meta_balls.push(new MetaBall());
+			}
+
+			var localizacao_uniform_x_meta_balls = gl.getUniformLocation(programa, 'x_meta_balls');
+			var localizacao_uniform_y_meta_balls = gl.getUniformLocation(programa, 'y_meta_balls');
+			var x = new Float32Array(quantidade_meta_balls);
+			var y = new Float32Array(quantidade_meta_balls);
+			for(var i = 0;i < quantidade_meta_balls;i++) {
+				x[i] = meta_balls[i].x;
+				y[i] = meta_balls[i].y;
+			}
+			gl.uniform1fv(localizacao_uniform_x_meta_balls, x);
+			gl.uniform1fv(localizacao_uniform_y_meta_balls, y);
+
+			gl.enableVertexAttribArray(localizacao_atributo_pos);
+
+			gl.vertexAttribPointer(localizacao_atributo_pos, 2, gl.FLOAT, false, 0, 0);
+
+			var agora = Date.now();
+			function renderizar() {
+				var dt = (Date.now() - agora) / 1000;
+				agora = Date.now();
+				if(dt < 0.1) {
+					for(var meta_ball of meta_balls) {
+						meta_ball.atualizar(dt);
+					}
+					for(var i = 0;i < quantidade_meta_balls;i++) {
+						x[i] = meta_balls[i].x;
+						y[i] = meta_balls[i].y;
+					}
+					gl.uniform1fv(localizacao_uniform_x_meta_balls, x);
+					gl.uniform1fv(localizacao_uniform_y_meta_balls, y);
+					gl.drawArrays(gl.TRIANGLES, 0, pontos.length);
+				}
+				requestAnimationFrame(renderizar);
+			}
+			requestAnimationFrame(renderizar);
+
+			document.onmousedown = function(event) {
+				if(document.fullscreenElement) {
+					if(document.exitFullscreen) {
+						document.exitFullscreen();
+					}
+				} else {
+					document.documentElement.requestFullscreen();
+					document.body.style.cursor = 'none';
+				}
+			}
+			document.onfullscreenchange = function(event) {
+				if(!document.fullscreenElement) {
+					document.body.style.cursor = 'context-menu';
+				}
+			}
+		</script>
+	</body>
+</html>

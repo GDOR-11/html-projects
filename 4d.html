@@ -1,0 +1,148 @@
+<canvas width = 1528 height = 706></canvas>
+<script>
+	var tela = document.querySelector("canvas");
+	var pincel = tela.getContext("2d");
+	function limpaTela() {
+		pincel.clearRect(0, 0, 1528, 706);
+	}
+	function calculaPosições3d(x, y, z) {
+		X = x;
+		Y = y;
+		Z = z;
+		projeção(X, Y, Z, fov);
+	}
+	function calculaPosições4d(x, y, z, w) {
+		X = x;
+		Y = y;
+		Z = z;
+		W = w;
+		giraEixoX(X, Y, Z, θyz);
+		giraEixoY(X, Y, Z, θxz);
+		giraEixoZ(X, Y, Z, θxy);
+		mova(X, Y, Z, W, tX, tY, tZ, tW);
+		projeção4d(X, Y, Z, W, fov);
+	}
+	function moveto3d(x, y, z) {
+		calculaPosições3d(x, y, z);
+		pincel.moveTo(X + 764, Y + 353);
+	}
+	function lineto3d(x, y, z) {
+		calculaPosições3d(x, y, z);
+		pincel.lineTo(X + 764, Y + 353);
+	}
+	function moveto4d(x, y, z, w) {
+		calculaPosições4d(x, y, z, w)
+		moveto3d(X, Y, Z);
+	}
+	function lineto4d(x, y, z, w) {
+		calculaPosições4d(x, y, z, w)
+		lineto3d(X, Y, Z);
+	}
+	function renderizador() {
+		pincel.strokeStyle = "hsl(240, 100%, 50%)";
+		limpaTela();
+		pincel.beginPath();
+		moveto4d(50, 50, 50, 50);
+		lineto4d(-50, 50, 50, 50);
+		lineto4d(-50, -50, 50, 50);
+		lineto4d(50, -50, 50, 50);
+		lineto4d(50, 50, 50, 50);
+		lineto4d(50, 50, -50, 50);
+		lineto4d(-50, 50, -50, 50);
+		lineto4d(-50, -50, -50, 50);
+		lineto4d(50, -50, -50, 50);
+		lineto4d(50, 50, -50, 50);
+		lineto4d(50, 50, -50, -50);
+		lineto4d(50, -50, -50, -50);
+		lineto4d(-50, -50, -50, -50);
+		lineto4d(-50, 50, -50, -50);
+		lineto4d(50, 50, -50, -50);
+		lineto4d(50, 50, 50, -50);
+		lineto4d(50, -50, 50, -50);
+		lineto4d(-50, -50, 50, -50);
+		lineto4d(-50, 50, 50, -50);
+		lineto4d(50, 50, 50, -50);
+		pincel.stroke();
+	}
+	function identificaTeclas(event) {
+		if (event.keyCode == 65)
+			tX -= 5;
+		if (event.keyCode == 87)
+			tY -= 5;
+		if (event.keyCode == 68)
+			tX += 5;
+		if (event.keyCode == 83)
+			tY += 5;
+		if (event.keyCode == 38)
+			tZ += 5;
+		if (event.keyCode == 40 && tZ >= 56)
+			tZ -= 5;
+		if (event.keyCode == 39)
+			θxy += 0.05;
+		if (event.keyCode == 37)
+			θxy -= 0.05;
+		if (event.keyCode == 73)
+			θyz -= 0.05;
+		if (event.keyCode == 75)
+			θyz += 0.05;
+		if (event.keyCode == 74)
+			θxz += 0.05;
+		if (event.keyCode == 76)
+			θxz -= 0.05;
+		if (event.keyCode == 107)
+			fov += 5;
+		if (event.keyCode == 109 && fov > 5)
+			fov -= 5;
+	}
+	function projeção(x, y, z, FOV) {
+		X = x * FOV / z;
+		Y = y * FOV / z;
+		Z = 0;
+	}
+	function projeção4d(x, y, z, w, FOV) {
+		X = x * FOV / w;
+		Y = y * FOV / w;
+		Z = z * FOV / w;
+		W = 0;
+	}
+	function mova(x, y, z, w, tx, ty, tz, tw) {
+		X = x + tx;
+		Y = y + ty;
+		Z = z + tz;
+		W = w + tw;
+	}
+	function giraEixoX(x, y, z, θ) {
+		X = x;
+		Y = y * Math.cos(θ) - z * Math.sin(θ);
+		Z = y * Math.sin(θ) + z * Math.cos(θ);
+	}
+	function giraEixoY(x, y, z, θ) {
+		X = z * Math.sin(θ) + x * Math.cos(θ);
+		Y = y;
+		Z = z * Math.cos(θ) - x * Math.sin(θ);
+	}
+	function giraEixoZ(x, y, z, θ) {
+		X = x * Math.cos(θ) - y * Math.sin(θ);
+		Y = x * Math.sin(θ) + y * Math.cos(θ);
+		Z = z;
+	}
+	var fps = 64;
+	var fov = 1000;
+	var X = 0;
+	var Y = 0;
+	var Z = 0;
+	var W = 0;
+	var θxw = 0;
+	var θyw = 0;
+	var θzw = 0;
+	var θxz = 0;
+	var θyz = 0;
+	var θxy = 0;
+	var tX = 0;
+	var tY = 0;
+	var tZ = 250;
+	var tW = 250;
+	renderizador();
+	setInterval(renderizador, 1000/fps);
+	document.onkeydown = identificaTeclas;
+</script>

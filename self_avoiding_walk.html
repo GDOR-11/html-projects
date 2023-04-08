@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang = 'pt-BR'>
+	<head>
+		<meta charset = 'utf-8' name = 'viewport' content = 'width = device-width, initial-scale = 1'>
+		<title>self-avoiding walk</title>
+		<style>
+			body {
+				margin: 0px;
+				overflow: hidden;
+			}
+		</style>
+	</head>
+	<body>
+		<canvas id = 'canvas' style = 'background-color: #000;'></canvas>
+		<script>
+			class Passo {
+				constructor(x, y) {
+					this.x = x;
+					this.y = y;
+					grid[this.x][this.y] = true;
+					this.movimentos_restantes = movimentos_possiveis.slice(0);
+					for(var i = this.movimentos_restantes.length - 1;i >= 0;i--) {
+						var x = this.x + this.movimentos_restantes[i].x;
+						var y = this.y + this.movimentos_restantes[i].y;
+						if(x < 0 || x >= largura || y < 0 || y >= altura) {
+							this.movimentos_restantes.splice(i, 1);
+							continue;
+						}
+						try {
+							if(grid[x][y]) {
+								this.movimentos_restantes.splice(i, 1);
+							}
+						} catch(error) {
+							console.log(x, y);
+						}
+					}
+				}
+				andar() {
+					if(this.movimentos_restantes.length > 0) {
+						var index = Math.floor(Math.random() * this.movimentos_restantes.length);
+						var movimento = this.movimentos_restantes[index];
+						this.movimentos_restantes.splice(index, 1);
+						caminho.push(new Passo(this.x + movimento.x, this.y + movimento.y));
+					} else {
+						grid[this.x][this.y] = false;
+						caminho.pop();
+					}
+				}
+			}
+			function resize() {
+				largura_canvas = window.innerWidth;
+				altura_canvas = window.innerHeight;
+				canvas.width = largura_canvas;
+				canvas.height = altura_canvas;
+			}
+			var canvas = document.getElementById('canvas');
+			var pincel = canvas.getContext('2d');
+			var escala = 5;
+			resize();
+			window.onresize = function () {
+				resize();
+				renderizar();
+			}
+			var largura = Math.floor((largura_canvas / escala) / 2) * 2;
+			var altura = Math.floor((altura_canvas / escala) / 2) * 2;
+			var movimentos_possiveis = [
+				{x: -1, y:  0},
+				{x:  0, y: -1},
+				{x:  0, y:  1},
+				{x:  1, y:  0}
+			];
+			var grid = [];
+			for(var i = 0;i < largura;i++) {
+				grid.push([]);
+				for(var j = 0;j < altura;j++) {
+					grid[i].push(false);
+				}
+			}
+			var acabou = false;
+			var caminho = [];
+			caminho.push(new Passo(largura / 2, altura / 2));
+			function renderizar() {
+				for(var i = 0;i < 100000;i++) {
+					if(caminho.length == largura * altura) {
+						if(!acabou) {
+							alert('pronto!');
+						}
+						acabou = true;
+						break;
+					}
+					caminho[caminho.length - 1].andar();
+				}
+				pincel.clearRect(0, 0, largura_canvas, altura_canvas);
+				pincel.strokeStyle = 'white';
+				pincel.lineWidth = escala / 2;
+				pincel.lineJoin = 'round';
+				pincel.beginPath();
+				for(var passo of caminho) {
+					pincel.lineTo(escala * passo.x, escala * passo.y);
+				}
+				pincel.stroke();
+				if(!acabou) {
+					requestAnimationFrame(renderizar);
+				}
+			}
+			requestAnimationFrame(renderizar);
+		</script>
+	</body>
+</html>

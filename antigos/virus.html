@@ -1,0 +1,27 @@
+<canvas width="1528" height="848"></canvas>
+<script>
+	var tela = document.querySelector("canvas");
+	var pincel = tela.getContext("2d");
+	function a() {
+		if (f) {
+			var b = Math.random() * 360;
+			var c = Math.random() * 100;
+			var d = Math.random() * 100;
+			var e = Math.random();
+			pincel.fillStyle = "hsla(" + b + ", " + c + "%, " + d + "%, " + e + ")"
+			pincel.fillRect(Math.random() * 1520, Math.random() * 848, Math.random() * 50, Math.random() * 50);
+			a();
+		}
+	}
+	function g(event) {
+		if (event.keyCode == 221) {
+			f = true
+		}
+		if (event.keyCode == 220) {
+			f = false
+		}
+	}
+	var f = true;
+	setInterval(a, 1);
+	document.onkeydown = g;
+</script>

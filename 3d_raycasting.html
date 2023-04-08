@@ -1,0 +1,256 @@
+<!-- <body id = 'body' style = 'margin:0px;overflow:hidden;'><canvas id = 'canvas' width = 1536 height = 721></canvas></body>
+<script>
+	var pincel = document.getElementById('canvas').getContext('2d');
+	function parede(x1, y1, x2, y2) {
+		var a = [x1, y1];
+		var b = [x2, y2];
+		function desenha_parede() {
+			pincel.lineWidth = 5;
+			pincel.strokeStyle = 'blue';
+			pincel.beginPath();
+			pincel.moveTo(a[0], a[1]);
+			pincel.lineTo(b[0], b[1]);
+			pincel.stroke();
+			pincel.lineWidth = 1;
+		}
+		return [a, b, desenha_parede];
+	}
+	function raio(angulo) {
+		var dir = [Math.cos(angulo + emissor_de_luz[2]) * 100, -Math.sin(angulo + emissor_de_luz[2]) * 100];
+		function desenha_raio(intersecao) {
+			if(intersecao) {
+				pincel.strokeStyle = 'white';
+				var dist = Math.hypot(emissor_de_luz[0] - intersecao[0], emissor_de_luz[1], intersecao[1]);
+				if((100000 / dist) <= 100) {
+					pincel.strokeStyle = 'rgb(' + (100000 / dist) + '%, ' + (100000 / dist) + '%, ' + (100000 / dist) + '%)';
+				}
+				// if(dist < 1000) {
+					// console.log('rolaaaaaaaaaaaaaa')
+				// }
+				// pincel.strokeStyle = 'rgb(0%, 100%, 100%)';
+				pincel.beginPath();
+				pincel.moveTo((angulo) * 1536 / (20 / 180 * Math.PI), 0);
+				pincel.lineTo((angulo) * 1536 / (20 / 180 * Math.PI), 721);
+				// pincel.moveTo((angulo) * 1536 / (100 / 180 * Math.PI), Math.atan(dist) * 360.5);
+				// pincel.lineTo((angulo) * 1536 / (100 / 180 * Math.PI), 721 - Math.atan(dist) * 360.5);
+				// pincel.moveTo(emissor_de_luz[0], emissor_de_luz[1]);
+				// if(intersecao) {
+					// pincel.lineTo(intersecao[0], intersecao[1]);
+				// }
+				pincel.stroke();
+			}
+		}
+		function raycast(parede) {
+			dir = [Math.cos(angulo + emissor_de_luz[2]) * 100, -Math.sin(angulo + emissor_de_luz[2]) * 100];
+			var x1 = parede[0][0];
+			var y1 = parede[0][1];
+			var x2 = parede[1][0];
+			var y2 = parede[1][1];
+			var x3 = emissor_de_luz[0];
+			var y3 = emissor_de_luz[1];
+			var x4 = emissor_de_luz[0] + dir[0];
+			var y4 = emissor_de_luz[1] + dir[1];
+			var denominador = (x1 - x2) * (y3 - y4) - (y1 - y2) * (x3 - x4);
+			if(denominador == 0) {
+				return undefined;
+			}
+			var t = ((x1 - x3) * (y3 - y4) - (y1 - y3) * (x3 - x4)) / denominador;
+			var u = -((x1 - x2) * (y1 - y3) - (y1 - y2) * (x1 - x3)) / denominador;
+			if(0 <= t && t <= 1 && u > 0) {
+				return [x1 + t * (x2 - x1), y1 + t * (y2 - y1)];
+			} else {
+				return undefined;
+			}
+		}
+		return [desenha_raio, raycast];
+	}
+	pincel.lineCap = 'round';
+	pincel.fillStyle = 'black';
+	pincel.fillRect(0, 0, 1536, 721);
+	var emissor_de_luz = [100, 200, 0];
+	for(var i = 0;i < 40;i += 0.036) {
+		emissor_de_luz.push(raio((i) * Math.PI / 180));
+	}
+	var paredes = [parede(0, 0, 1536, 0)];//, parede(1536, 0, 1536, 721), parede(1536, 721, 0, 721), parede(0, 721, 0, 0)];
+	// var paredes = [];
+	// for(var i = 0;i < 1;i++) {
+		// paredes.push(parede(Math.random() * 1536, Math.random() * 721, Math.random() * 1536, Math.random() * 721));
+	// }
+	document.onmousemove = function(event) {
+	}
+	setInterval(function() {
+		pincel.fillStyle = 'black';
+		pincel.fillRect(0, 0, 1536, 721);
+		for(var i = 3;i < emissor_de_luz.length;i++) {
+			var ponto_intersecao = emissor_de_luz[i][1](paredes[0]);
+			for(var j = 1;j < paredes.length;j++) {
+				if(!ponto_intersecao) {
+					ponto_intersecao = emissor_de_luz[i][1](paredes[j]);
+				} else if(emissor_de_luz[i][1](paredes[j]) && Math.hypot(emissor_de_luz[i][1](paredes[j])[0] - emissor_de_luz[0], emissor_de_luz[i][1](paredes[j])[1] - emissor_de_luz[1]) < Math.hypot(ponto_intersecao[0] - emissor_de_luz[0], ponto_intersecao[1] - emissor_de_luz[1])) {
+					ponto_intersecao = emissor_de_luz[i][1](paredes[j]);
+				}
+			}
+			if(ponto_intersecao) {
+				emissor_de_luz[i][0](ponto_intersecao);
+			} else {
+				emissor_de_luz[i][0]();
+			}
+		}
+		// for(var i = 0;i < paredes.length;i++) {
+			// paredes[i][2]();
+		// }
+		if(teclas_pressionadas.indexOf(37) != -1) {
+			emissor_de_luz[2] += 0.01;
+		}
+		if(teclas_pressionadas.indexOf(38) != -1) {
+			emissor_de_luz[0] += Math.cos(-(emissor_de_luz[2] + Math.PI / 4)) - Math.sin(-(emissor_de_luz[2] + Math.PI / 4));
+			emissor_de_luz[1] += Math.sin(-(emissor_de_luz[2] + Math.PI / 4)) + Math.cos(-(emissor_de_luz[2] + Math.PI / 4));
+		}
+		if(teclas_pressionadas.indexOf(39) != -1) {
+			emissor_de_luz[2] -= 0.01;
+		}
+		if(teclas_pressionadas.indexOf(40) != -1) {
+			emissor_de_luz[0] -= Math.cos(-(emissor_de_luz[2] + Math.PI / 4)) - Math.sin(-(emissor_de_luz[2] + Math.PI / 4));
+			emissor_de_luz[1] -= Math.sin(-(emissor_de_luz[2] + Math.PI / 4)) + Math.cos(-(emissor_de_luz[2] + Math.PI / 4));
+		}
+	}, 10);
+	var teclas_pressionadas = [];
+	document.onkeydown = function(event) {
+		if(teclas_pressionadas.indexOf(event.keyCode) == -1) {
+			teclas_pressionadas.push(event.keyCode);
+		}
+	}
+	document.onkeyup = function(event) {
+		teclas_pressionadas.splice(teclas_pressionadas.indexOf(event.keyCode), 1);
+	}
+</script> -->
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>raycasting</title>
+		<style>
+			body {
+				margin: 0px;
+				overflow: hidden;
+			}
+		</style>
+	</head>
+	<body>
+		<canvas id = 'canvas'></canvas>
+		<script>
+			class Parede {
+				constructor(a, b) {
+					this.a = a;
+					this.b = b;
+				}
+				desenhar() {
+					pincel.strokeStyle = 'blue';
+					pincel.lineWidth = 2;
+					pincel.beginPath();
+					pincel.moveTo(this.a.x, this.a.y);
+					pincel.lineTo(this.b.x, this.b.y);
+					pincel.stroke();
+				}
+			}
+			class Raio_de_luz {
+				constructor(pos, dir) {
+					this.pos = pos;
+					this.dir = dir;
+				}
+				desenhar(intersecao) {
+					pincel.strokeStyle = 'yellow';
+					pincel.lineWidth = 1;
+					pincel.beginPath();
+					pincel.moveTo(this.pos.x, this.pos.y);
+					pincel.lineTo(intersecao.x, intersecao.y);
+					pincel.stroke();
+				}
+				cast(paredes) {
+					var recorde = {x: Infinity, y: Infinity};
+					for(var parede of paredes) {
+						var x1 = parede.a.x;
+						var y1 = parede.a.y;
+						var x2 = parede.b.x;
+						var y2 = parede.b.y;
+						var x3 = this.pos.x;
+						var y3 = this.pos.y;
+						var x4 = x3 + this.dir.x;
+						var y4 = y3 + this.dir.y;
+						var den = (x1 - x2) * (y3 - y4) - (y1 - y2) * (x3 - x4);
+						if(den != 0) {
+							var t = ((x1 - x3) * (y3 - y4) - (y1 - y3) * (x3 - x4)) / den;
+							var u = -(((x1 - x2) * (y1 - y3) - (y1 - y2) * (x3 - x4))) / den;
+							if(t >= 0 && t <= 1 && u >= 0) {
+								var intersecao = {
+									x: x1 + t * (x2 - x1),
+									y: y1 + t * (y2 - y1)
+								}
+								var dx1 = intersecao.x - this.pos.x;
+								var dy1 = intersecao.y - this.pos.y;
+								var dx2 = recorde.x - this.pos.x;
+								var dy2 = recorde.y - this.pos.y
+								if(dx1 * dx1 + dy1 * dy1 < dx2 * dx2 + dy2 * dy2) {
+									recorde = intersecao;
+								}
+							}
+						}
+					}
+					if(recorde.x != Infinity && recorde.y != Infinity) {
+						return recorde;
+					}
+				}
+			}
+			class Fonte_de_luz {
+				constructor(pos) {
+					this.pos = pos;
+					this.intersecoes = [];
+					this.raios_de_luz = [];
+					for(var a = 0;a < 2 * Math.PI;a += Math.PI / 50) {
+						this.raios_de_luz.push(new Raio_de_luz(this.pos, {x: Math.cos(a), y: -Math.sin(a)}));
+					}
+				}
+				desenhar() {
+					for(var i = 0;i < this.raios_de_luz.length;i++) {
+						this.raios_de_luz[i].desenhar(this.intersecoes[i]);
+					}
+				}
+				cast(paredes) {
+					for(var raio_de_luz of this.raios_de_luz) {
+						var intersecao = raio_de_luz.cast(paredes);
+						this.intersecoes.push(intersecao);
+					}
+				}
+			}
+			var canvas = document.getElementById('canvas');
+			var largura = window.innerWidth;
+			var altura = window.innerHeight;
+			canvas.width = largura;
+			canvas.height = altura;
+			var pincel = canvas.getContext('2d');
+			var pos_mouse = {
+				x: largura / 2,
+				y: altura / 2
+			}
+			var paredes = [];
+			for(var i = 0;i < 10;i++) {
+				paredes.push(new Parede({x: Math.random() * largura, y: Math.random() * altura}, {x: Math.random() * largura, y: Math.random() * altura}));
+			}
+			paredes.push(new Parede({x: 0, y: 0}, {x: 0, y: altura}));
+			paredes.push(new Parede({x: 0, y: altura}, {x: largura, y: altura}));
+			paredes.push(new Parede({x: largura, y: altura}, {x: largura, y: 0}));
+			paredes.push(new Parede({x: largura, y: 0}, {x: 0, y: 0}));
+			var fonte_de_luz = new Fonte_de_luz(pos_mouse);
+			document.onmousemove = function(event) {
+				pos_mouse = {x: event.clientX, y: event.clientY}
+			}
+			// setInterval(function() {
+				fonte_de_luz.pos = pos_mouse;
+				fonte_de_luz.cast(paredes);
+				fonte_de_luz.desenhar();
+				for(var parede of paredes) {
+					parede.desenhar();
+				}
+			// }, 1);
+		</script>
+	</body>
+</html>

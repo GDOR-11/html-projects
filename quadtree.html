@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang = 'pt-BR'>
+	<head>
+		<meta charset = 'utf-8' name = 'viewport' content = 'width = device-width, initial-scale = 1'>
+		<title>quadtrees</title>
+		<style>
+			body {
+				margin: 0px;
+				overflow: hidden;
+			}
+		</style>
+	</head>
+	<body>
+		<canvas id = 'canvas' style = 'background-color: #000;'></canvas>
+		<script>
+			class QuadTree {
+				constructor(x, y, w, h) {
+					this.x = x || 0;
+					this.y = y || 0;
+					this.largura = w || largura;
+					this.altura = h || altura;
+					this.bolas = [];
+				}
+				desenhar() {
+					pincel.lineJoin = 'miter';
+					pincel.lineWidth = 1;
+					pincel.strokeRect(this.x, this.y, this.largura, this.altura);
+					for(var qt of ['cima_esquerda', 'baixo_esquerda', 'cima_direita', 'baixo_direita']) {
+						if(this.hasOwnProperty(qt)) {
+							this[qt].desenhar();
+						}
+					}
+				}
+				adicionar(bola, contagem = 0) {
+					this.bolas.push(bola);
+					if(contagem++ < 5) {
+						if(bola.x > this.x - bola.r && bola.x < this.x + this.largura / 2 + bola.r) {
+							if(bola.y > this.y - bola.r && bola.y < this.y + this.altura / 2 + bola.r) {
+								if(!this.hasOwnProperty('cima_esquerda')) {
+									this.cima_esquerda = new QuadTree(this.x, this.y, this.largura / 2, this.altura / 2);
+								}
+								this.cima_esquerda.adicionar(bola, contagem);
+							}
+							if(bola.y > this.y + this.altura / 2 - bola.r && bola.y < this.y + this.altura + bola.r) {
+								if(!this.hasOwnProperty('baixo_esquerda')) {
+									this.baixo_esquerda = new QuadTree(this.x, this.y + this.altura / 2, this.largura / 2, this.altura / 2);
+								}
+								this.baixo_esquerda.adicionar(bola, contagem);
+							}
+						}
+						if(bola.x > this.x + this.largura / 2 - bola.r && bola.x < this.x + this.largura + bola.r) {
+							if(bola.y > this.y - bola.r && bola.y < this.y + this.altura / 2 + bola.r) {
+								if(!this.hasOwnProperty('cima_direita')) {
+									this.cima_direita = new QuadTree(this.x + this.largura / 2, this.y, this.largura / 2, this.altura / 2);
+								}
+								this.cima_direita.adicionar(bola, contagem);
+							}
+							if(bola.y > this.y + this.altura / 2 - bola.r && bola.y < this.y + this.altura + bola.r) {
+								if(!this.hasOwnProperty('baixo_direita')) {
+									this.baixo_direita = new QuadTree(this.x + this.largura / 2, this.y + this.altura / 2, this.largura / 2, this.altura / 2);
+								}
+								this.baixo_direita.adicionar(bola, contagem);
+							}
+						}
+					}
+				}
+				resetar() {
+					delete this.cima_esquerda;
+					delete this.baixo_esquerda;
+					delete this.cima_direita;
+					delete this.baixo_direita;
+					this.bolas = [];
+				}
+				checar_colisoes(bola) {
+					for(var b of this.bolas) {
+						if(b != bola) {
+							var dx = bola.x - b.x;
+							var dy = bola.y - b.y;
+							var r = bola.r + b.r;
+							if(dx * dx + dy * dy < r * r) {
+								return true;
+							}
+						}
+					}
+				}
+				colidindo(bola) {
+					var colidiu = false;
+					if(bola.x > this.x - bola.r && bola.x < this.x + this.largura / 2 + bola.r) {
+						if(bola.y > this.y - bola.r && bola.y < this.y + this.altura / 2 + bola.r) {
+							if(this.hasOwnProperty('cima_esquerda')) {
+								colidiu = this.cima_esquerda.colidindo(bola) || colidiu;
+							} else {
+								colidiu = this.checar_colisoes(bola) || colidiu;
+							}
+							if(colidiu) {
+								return true;
+							}
+						}
+						if(bola.y > this.y + this.altura / 2 - bola.r && bola.y < this.y + this.altura + bola.r) {
+							if(this.hasOwnProperty('baixo_esquerda')) {
+								colidiu = this.baixo_esquerda.colidindo(bola) || colidiu;
+							} else {
+								colidiu = this.checar_colisoes(bola) || colidiu;
+							}
+							if(colidiu) {
+								return true;
+							}
+						}
+					}
+					if(bola.x > this.x + this.largura / 2 - bola.r && bola.x < this.x + this.largura + bola.r) {
+						if(bola.y > this.y - bola.r && bola.y < this.y + this.altura / 2 + bola.r) {
+							if(this.hasOwnProperty('cima_direita')) {
+								colidiu = this.cima_direita.colidindo(bola) || colidiu;
+							} else {
+								colidiu = this.checar_colisoes(bola) || colidiu;
+							}
+							if(colidiu) {
+								return true;
+							}
+						}
+						if(bola.y > this.y + this.altura / 2 - bola.r && bola.y < this.y + this.altura + bola.r) {
+							if(this.hasOwnProperty('baixo_direita')) {
+								colidiu = this.baixo_direita.colidindo(bola) || colidiu;
+							} else {
+								colidiu = this.checar_colisoes(bola) || colidiu;
+							}
+							if(colidiu) {
+								return true;
+							}
+						}
+					}
+					return false;
+				}
+				menor_distancia_local(ponto) {
+					var menor_distancia = Infinity;
+					var bola_mais_proxima = null;
+					for(var b of this.bolas) {
+						if(b != ponto) {
+							var dx = ponto.x - b.x;
+							var dy = ponto.y - b.y;
+							var distancia_sq = dx * dx + dy * dy;
+							if(distancia_sq < menor_distancia) {
+								menor_distancia = distancia_sq;
+								bola_mais_proxima = b;
+							}
+						}
+					}
+					if(bola_mais_proxima != null) {
+						return Math.max(Math.sqrt(menor_distancia) - bola_mais_proxima.r, 0);
+					} else {
+						return Infinity;
+					}
+				}
+				menor_distancia(ponto) {
+					function distancia_ponto_retangulo(p, x, y, w, h) {
+						return Math.hypot(Math.max(Math.abs(p.x - x) - w, 0), Math.max(Math.abs(p.y - y) - h, 0));
+					}
+					var menor_distancia = Infinity;
+					var lados = [];
+					for(var nome_lado of ['cima_esquerda', 'baixo_esquerda', 'cima_direita', 'baixo_direita']) {
+						var x = this.x + this.largura / 4;
+						if(nome_lado == 'cima_direita' || nome_lado == 'baixo_direita') {
+							x += this.largura / 2;
+						}
+						var y = this.y + this.altura / 4;
+						if(nome_lado == 'baixo_esquerda' || nome_lado == 'baixo_direita') {
+							y += this.altura / 2;
+						}
+						var distancia = distancia_ponto_retangulo(ponto, x, y, this.largura / 4, this.altura / 4);
+						lados.push({nome_lado, distancia});
+					}
+					lados.sort((a, b) => a.distancia - b.distancia);
+					for(var lado of lados) {
+						if(lado.distancia < menor_distancia && this.hasOwnProperty(lado.nome_lado)) {
+							menor_distancia = Math.min(this[lado.nome_lado].menor_distancia(ponto), menor_distancia);
+						}
+					}
+					if(menor_distancia == Infinity) {
+						menor_distancia = this.menor_distancia_local(ponto);
+					}
+					return menor_distancia;
+				}
+			}
+			class Bola {
+				constructor(r) {
+					this.x = (Math.random() * 0.8 + 0.1) * largura;
+					this.y = (Math.random() * 0.8 + 0.1) * altura;
+					var a = Math.random() * 2 * Math.PI;
+					this.vx = 100 * Math.cos(a);
+					this.vy = 100 * Math.sin(a);
+					this.r = r || 2.5;
+				}
+				atualizar(dt) {
+					this.vx += 200000 * dt / (this.x * this.x);
+					this.vx -= 200000 * dt / ((largura - this.x) * (largura - this.x));
+					this.vy += 200000 * dt / (this.y * this.y);
+					this.vy -= 200000 * dt / ((altura - this.y) * (altura - this.y));
+					this.x += this.vx * dt;
+					this.y += this.vy * dt;
+				}
+				desenhar() {
+					pincel.lineJoin = 'round';
+					pincel.lineWidth = this.r * 2;
+					pincel.strokeRect(this.x, this.y, 0.3, 0.3);
+				}
+			}
+			var canvas = document.getElementById('canvas');
+			var pincel = canvas.getContext('2d');
+			var largura = window.innerWidth;
+			var altura = window.innerHeight;
+			canvas.width = largura;
+			canvas.height = altura;
+			window.onresize = function() {
+				largura = window.innerWidth;
+				altura = window.innerHeight;
+				var img_data = pincel.getImageData(0, 0, canvas.width, canvas.height);
+				canvas.width = Math.max(canvas.width, largura);
+				canvas.height = Math.max(canvas.height, altura);
+				pincel.putImageData(img_data, 0, 0);
+				quadtree = new QuadTree();
+				for(var bola of bolas) {
+					quadtree.adicionar(bola);
+				}
+			}
+			var bolas = [];
+			for(var i = 0;i < 25;i++) {
+				bolas.push(new Bola(10));
+			}
+			var quadtree = new QuadTree();
+			for(var bola of bolas) {
+				quadtree.adicionar(bola);
+			}
+			var agora = Date.now();
+			async function renderizar() {
+				var dt = (Date.now() - agora) / 1000;
+				agora = Date.now();
+				if(dt < 1) {
+					pincel.clearRect(0, 0, largura, altura);
+					quadtree.resetar();
+					for(var bola of bolas) {
+						bola.atualizar(dt);
+					}
+					for(var bola of bolas) {
+						quadtree.adicionar(bola);
+					}
+					pincel.strokeStyle = 'rgba(255, 255, 255, 0.5)';
+					quadtree.desenhar();
+					for(var bola of bolas) {
+						if(quadtree.colidindo(bola)) {
+							pincel.strokeStyle = 'white';
+						} else {
+							pincel.strokeStyle = 'grey';
+						}
+						bola.desenhar();
+						quadtree.menor_distancia(bola);
+					}
+					// for(var bola of bolas) {
+					// 	bola.atualizar(dt);
+					// 	pincel.strokeStyle = 'rgba(255, 255, 255, 0.5)';
+					// 	var menor_distancia = Infinity;
+					// 	for(var outra_bola of bolas) {
+					// 		if(bola != outra_bola) {
+					// 			var dx = bola.x - outra_bola.x;
+					// 			var dy = bola.y - outra_bola.y;
+					// 			var sr = bola.r + outra_bola.r;
+					//			var dist_sq = dx * dx + dy * dy;
+					// 			menor_distancia = Math.min(dist_sq, menor_distancia);
+					// 			if(dist_sq <= sr * sr) {
+					// 				pincel.strokeStyle = 'white';
+					// 				break;
+					// 			}
+					// 		}
+					// 	}
+					// 	bola.desenhar();
+					// 	Math.sqrt(menor_distancia);
+					// }
+				}
+				requestAnimationFrame(renderizar);
+			}
+			requestAnimationFrame(renderizar);
+		</script>
+	</body>
+</html>

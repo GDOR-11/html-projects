@@ -1,0 +1,39 @@
+<body style = 'overflow:hidden;margin:0px;'><canvas id = 'canvas' width = 1536 height = 721></canvas>
+	<script>
+		var pincel = document.getElementById('canvas').getContext('2d');
+		async function esperar(milissegundos) {
+			return new Promise(resolve => setTimeout(resolve, milissegundos));
+		}
+		async function bubblesort(array) {
+			for(var i = array.length - 1;i >= 0;i--) {
+				for(var j = 0;j < i;j++) {
+					if(array_aleatorio[j] > array_aleatorio[j + 1]) {
+						var arrayj = array_aleatorio[j];
+						array_aleatorio[j] = array_aleatorio[j + 1];
+						array_aleatorio[j + 1] = arrayj;
+					}
+					await esperar(1);
+					pincel.clearRect(0, 0, 1536, 721);
+					for(var k = 0;k < array.length;k++) {
+						pincel.fillStyle = 'black';
+						if(k == i) {
+							pincel.fillStyle = 'blue';
+						}
+						if(k == j) {
+							pincel.fillStyle = 'red';
+						}
+						if(k > i) {
+							pincel.fillStyle = 'rgba(0, 0, 255, 0.5)';
+						}
+						pincel.fillRect(k * 6, 721 - array[k], 6, 721);
+					}
+				}
+			}
+		}
+		var array_aleatorio = [];
+		for(var i = 0;i < 256;i++) {
+			array_aleatorio.push(Math.random() * 721);
+		}
+		bubblesort(array_aleatorio);
+	</script>
+</body>

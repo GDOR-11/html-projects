@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang = 'pt-BR'>
+	<head>
+		<meta charset = 'utf-8' name = 'viewport' content = 'width = device-width, initial-scale = 1'>
+		<meta http-equiv = 'X-UA-Compatible' content = 'ie = edge'>
+		<title>floodfill</title>
+		<style>
+			body {
+				margin: 0px;
+				overflow: hidden;
+			}
+		</style>
+	</head>
+	<body>
+		<canvas id = 'canvas'></canvas>
+		<script>
+			function draw() {
+				pincel.fillStyle = 'white';
+				pincel.fillRect(0, 0, largura, altura);
+				pincel.fillStyle = 'black';
+				for(var retangulo of retangulos) {
+					pincel.fillRect(...retangulo);
+				}
+			}
+			function draw_queue(queue) {
+				for(var pixel of queue) {
+					data[4 * pixel + 0] = 0;
+					data[4 * pixel + 1] = 0;
+					data[4 * pixel + 2] = 255;
+					data[4 * pixel + 3] = 255;
+				}
+				pincel.putImageData(img_data, 0, 0);
+			}
+			async function floodfill(array, ponto_inicial) {
+				array = array.slice();
+				if(!ponto_inicial) {
+					while(array[ponto_inicial = Math.floor(Math.random() * array.length)] == 0);
+				} else if(array[ponto_inicial] == 0) {
+					return;
+				}
+				var queue = [ponto_inicial];
+				var filled_pixels = [ponto_inicial];
+				var direcoes = [1, -1, largura, -largura];
+				while(!parar && queue.length > 0) {
+					for(var i = queue.length - 1;i >= 0;i--) {
+						for(var direcao of direcoes) {
+							var pixel = queue[i] + direcao;
+							if(array[pixel] == 1) {
+								queue.push(pixel);
+								filled_pixels.push(pixel);
+								array[pixel] = 0;
+							}
+						}
+						queue.splice(i, 1);
+					}
+					draw_queue(queue);
+					await new Promise(r => setTimeout(r, 0));
+				}
+			}
+			function resize() {
+				largura = window.innerWidth;
+				altura = window.innerHeight;
+				canvas.width = Math.max(canvas.width, largura);
+				canvas.height = Math.max(canvas.height, altura);
+			}
+			var canvas = document.getElementById('canvas');
+			var pincel = canvas.getContext('2d');
+			resize();
+			window.onresize = resize;
+			var retangulos = [];
+			for(var i = 0;i < 20;i++) {
+				retangulos.push([Math.random() * (largura - 256), Math.random() * (altura - 256), (1 + Math.random()) * 128, (1 + Math.random()) * 128]);
+			}
+			draw();
+			var img_data = pincel.getImageData(0, 0, largura, altura);
+			var data = img_data.data;
+			var array = new Uint8ClampedArray(data.length / 4);
+			for(var i = 0;i < data.length / 4;i++) {
+				array[i] = data[4 * i] / 255;
+			}
+			var parar = false;
+			floodfill(array);
+
+			var passive = false;
+			try {
+				window.addEventListener('event-listener', null, Object.defineProperty({}, 'passive', {get: () => passive = {passive: true}}));
+			} catch(error) {}
+
+			window.addEventListener('mousedown', function(event) {
+				if(event.button == 0) {
+					parar = true;
+					draw();
+					img_data = pincel.getImageData(0, 0, largura, altura);
+					data = img_data.data;
+					array = new Uint8ClampedArray(data.length / 4);
+					for(var i = 0;i < data.length / 4;i++) {
+						array[i] = data[4 * i] / 255;
+					}
+					setTimeout(function(event) {parar = false;floodfill(array, event.clientX + largura * event.clientY);}, 100, event);
+				}
+			}, passive);
+			window.addEventListener('contextmenu', function(event) {
+				retangulos = [];
+				for(var i = 0;i < 20;i++) {
+					retangulos.push([Math.random() * (largura - 256), Math.random() * (altura - 256), (1 + Math.random()) * 128, (1 + Math.random()) * 128]);
+				}
+				draw();
+				parar = true;
+				event.preventDefault();
+			});
+		</script>
+	</body>
+</html>

@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang = 'pt-BR'>
+	<head>
+		<meta charset = 'utf-8' name = 'viewport' content = 'width = device-width, initial-scale = 1'>
+		<meta http-equiv = 'X-UA-Compatible' content = 'ie = edge'>
+		<title>testando PrivateClass.js</title>
+		<script src = 'PrivateClass.js'></script>
+	</head>
+	<body>
+		<script>
+			privateClassCreator = new PrivateClassCreator('PrivateClass', function(a, b) {console.log(a, b, this);this.a = b;this.b = a;console.log(a, b, this.a, this.b);});
+			privateClassCreator.addProperty('a', NaN, true, true, '() => this.#a', 'val => this.#a = val');
+			privateClassCreator.addProperty('b', NaN, true, true, '() => this.#b', 'val => this.#b = val');
+			privateClassCreator.createClass();
+			deleteVariables('privateClassCreator');
+		</script>
+	</body>
+</html>

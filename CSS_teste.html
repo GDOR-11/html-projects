@@ -1,0 +1,285 @@
+<style>
+	* {/*todos os elementos devem estar no centro como padrão*/
+		text-align: center;
+	}
+	::selection {
+		color: red;
+		background-color: green;
+	}
+	h1.totalmenteEstilizado {/*estilizar totalmente h1*/
+		color: red;
+		font-size: 300%;
+	}
+	p.totalmenteEstilizado {/*estilizar totalmente h2*/
+		color: red;
+		font-size: 150%;
+	}
+	.naEsquerda, ul, ol, li {/*colocar o texto na esquerda da pagina*/
+		text-align: left;
+	}
+	.naDireita {/*colocar o texto na direita da pagina*/
+		text-align: right;
+	}
+	.amarelo {/*deixar o texto amarelo*/
+		color: yellow;
+	}
+	.aoContrario {/*deixa o texto ao contrário*/
+		direction: rtl;
+		unicode-bidi: bidi-override;
+	}
+	.underline {
+		text-decoration: underline;
+	}
+	.upperline {
+		text-decoration: overline;
+	}
+	.crossline {
+		text-decoration: line-through;
+	}
+	.letrasEspaçadas {
+		letter-spacing: 10px;
+	}
+	.sombra {
+		text-shadow: 5px 5px 3px yellow;
+	}
+	.serif {
+		font-family: "Times New Roman", Times, serif;
+	}
+	.italico {
+		font-style: italic;
+	}
+	.negrito {
+		font-weight: bold;
+	}
+	.bordaPontilhada {/*borda pontilhada*/
+		border-color: blue;
+		border-style: dotted;
+	}
+	.bordaTracejada {/*borda tracejada*/
+		border-color: blue;
+		border-style: dashed;
+	}
+	.borda {/*borda normal*/
+		border-color: blue;
+		border-style: solid;
+	}
+	.bordaDupla {/*borda dupla*/
+		border-color: blue;
+		border-style: double;
+	}
+	.bordaRedonda {/*borda com cantos arredondados*/
+		border: 2px solid blue;
+		border-radius: 20px;
+	}
+	.primeiraLetraGrande::first-letter {
+		font-size: 500%;
+		font-style: serif;
+	}
+	img.transparente {
+	  opacity: 0.0;
+	}
+	img.transparente:hover {
+	  opacity: 1.0;
+	}
+	h1.grande {/*aumenta o tamanho do h1*/
+		font-size: 300%;
+	}
+	p.grande {/*aumenta o tamanho do p*/
+		font-size: 150%;
+	}
+	h2.totalmenteEstilizado, h3.totalmenteEstilizado {/*estiliza totalmente h2 e h3*/
+		color: yellow;
+		font-size: 200%;
+	}
+	body {/*coloca uma borda e uma cor de fundo na tela*/
+		border: 1px solid black;
+		border-radius: 20px;
+		background-image: url(https://digitalsynopsis.com/wp-content/uploads/2016/06/loading-animations-preloader-gifs-ui-ux-effects-10.gif);
+		background-position: 0px -380px;
+		background-size: 1500px 1500px;
+		background-repeat: no-repeat;
+		background-attachment: fixed;
+	}
+	ul {
+		list-style-image: circle;
+	}
+	ol {
+		list-style-type: upper-roman;
+	}
+	table, td {/*estiliza tabelas*/
+		border: 1px solid black;
+		border-radius: 5px;
+		margin: 10px;
+		padding: 10px;
+	}
+	table:hover, td:hover {
+		border-color: red;
+	}
+	a {
+		text-decoration: none;
+	}
+	a:visited {
+		color: blue;
+	}
+	.mudarCor:hover {
+		color: red;
+	}
+	ul.projetosJavascript {
+		display: inline-block;
+		position: relative;
+		bottom: 11px;
+		left: 10px;
+		list-style-type: none;
+		margin: 0;
+		padding: 0;
+		width: 777px;
+		height: 22px;
+		background-color: #aaaaaa;
+	}
+	li.projetosJavascript {
+		position: relative;
+		top: 2px;
+		left: 2px;
+		display: inline;
+	}
+	li.projetosJavascript a {
+		border: 2px solid black;
+		text-decoration: none;
+		padding: 0px 16px;
+		margin: 0px -3px;
+	}
+	li.projetosJavascript a:hover {
+		background-color: grey;
+	}
+</style>
+<p>este texto é um texto padrão, mas ainda sim no centro</p>
+
+<h1 style = 'position:fixed;z-index:-1;'>este texto fica no mesmo lugar</h1>
+
+<p class = 'naDireita grande'>este texto está na direita e está grande</p>
+
+<h1 class = 'grande bordaRedonda'>este texto está no centro, grande e tem borda arredondada</h1>
+
+<p class = 'naEsquerda totalmenteEstilizado'>este texto está totalmente estilizado e na esquerda</p>
+
+<h1 class = 'totalmenteEstilizado bordaPontilhada'>este texto está totalmente estilizado e tem borda pontilhada</h1>
+
+<br>
+
+<h2 class = 'totalmenteEstilizado'>este texto está amarelo e grande</h2>
+
+<h3 class = 'totalmenteEstilizado bordaDupla'>este também e tem borda dupla</h3>
+
+<h2>mas esse não</h2>
+
+<h1 style = 'text-align:left;color:blue;font-size:50%;background-color:white;opacity:0.5;'>este texto foi estilizaado em uma linha</h1>
+
+<h1 class = 'totalmenteEstilizado' style = 'color:hsla(9, 100%, 64%, 0.5);background-color:white;opacity:0.9;'>este texto está levemente transparente</h1>
+
+<p class = 'aoContrario'>este texto está ao contrário</p>
+
+<p class = 'underline'>este texto tem uma linha em baixo</p>
+
+<p class = 'upperline'>este tem uma linha em cima</p>
+
+<p class = 'crossline'>e este tem uma linha no meio</p>
+
+<p class = 'grande' style = 'position:sticky;top:0;bottom:0;z-index:-1;'>este texto não sai da tela, mas se move</p>
+
+<p class = 'letrasEspaçadas'>este texto tem as letras bastante espaçadas</p>
+
+<h1 class = 'sombra'>este texto tem sombra</h1>
+
+<p class = 'serif'>Este Texto Está Com Fonte Lgl-;</p>
+
+<p class = 'italico'>Este texto está em itálico</p>
+
+<p class = 'negrito'>este texto está em negrito</p>
+
+<p class = 'mudarCor'>passe o mouse por cima deste texto</p>
+
+<ul>
+	<li>batata</li>
+	<li>morango</li>
+	<li>chocolate</li>
+	<li>melancia</li>
+	<li>sorvete</li>
+</ul>
+
+<ol>
+	<li>1</li>
+	<li>2</li>
+	<li>3</li>
+	<li>4</li>
+	<li>5</li>
+</ol>
+
+<table>
+	<tr>
+		<td>1</td>
+		<td>2</td>
+		<td>3</td>
+		<td>4</td>
+		<td>5</td>
+	</tr>
+	<tr>
+		<td>16</td>
+		<td>17</td>
+		<td>18</td>
+		<td>19</td>
+		<td>6</td>
+	</tr>
+	<tr>
+		<td>15</td>
+		<td>24</td>
+		<td>25</td>
+		<td>20</td>
+		<td>7</td>
+	</tr>
+	<tr>
+		<td>14</td>
+		<td>23</td>
+		<td>22</td>
+		<td>21</td>
+		<td>8</td>
+	</tr>
+	<tr>
+		<td>13</td>
+		<td>12</td>
+		<td>11</td>
+		<td>10</td>
+		<td>9</td>
+	</tr>
+</table>
+<a onclick = 'aparece_desaparece()'>clique aqui</a>
+<p id = 'p' style = 'visibility: hidden;'>este texto aparece e desaparece com javascript</p>
+<script>
+	function aparece_desaparece() {
+		if(document.getElementById('p').style.visibility == 'hidden') {
+			document.getElementById('p').style.visibility = 'visible';
+		} else {
+			document.getElementById('p').style.visibility = 'hidden';
+		}
+	}
+</script>
+<script>
+	var i = 0;
+	var j = 0;
+	setInterval(function() {
+		i = (Math.cos(j) + 1.22) * 500;
+		j += 0.01;
+		document.getElementById('p2').style.left = i;
+	}, 10);
+</script>
+<p id = 'p2' style = 'position:relative;left:1;width:244px;'>esse elemento se move com javascript</p>
+<p class = 'primeiraLetraGrande naEsquerda'>Este texto tem a primeira letra bastante grande</p>
+<img class = 'transparente' src = 'https://images.vexels.com/media/users/3/143350/isolated/preview/150164edc7f28a716bfceae9dd58cf2c-meme-trollface-coolface-by-vexels.png'>
+<p>meus programas em javascript:</p>
+<ul class = 'projetosJavascript'>
+	<li class = 'projetosJavascript'><a href = 'file:///C:/Users/Sidin/Desktop/logica/asteróides.html' target = '_blank'>asteróides 1</a></li>
+	<li class = 'projetosJavascript'><a href = 'file:///C:/Users/Sidin/Desktop/logica/asteroides_2.html' target = '_blank'>asteróides 2</a></li>
+	<li class = 'projetosJavascript'><a href = 'file:///C:/Users/Sidin/Desktop/logica/diffusion_limited_aggregation.html' target = '_blank'>diffusion limited aggregation</a></li>
+	<li class = 'projetosJavascript'><a href = 'file:///C:/Users/Sidin/Desktop/logica/pendulo_duplo.html' target = '_blank'>pendulo duplo</a></li>
+	<li class = 'projetosJavascript'><a href = 'file:///C:/Users/Sidin/Desktop/logica/meu_jogo.html' target = '_blank'>meu jogo</a></li>
+	<li class = 'projetosJavascript'><a href = 'file:///C:/Users/Sidin/Desktop/logica/jogo_advinha.html' target = '_blank'>jogo advinha</a></li>
+</ul>

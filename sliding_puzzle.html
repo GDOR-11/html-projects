@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang = 'pt-BR'>
+	<head>
+		<meta charset = 'utf-8' name = 'viewport' content = 'width = device-width, initial-scale = 1'>
+		<meta http-equiv = 'X-UA-Compatible' content = 'ie = edge'>
+		<title>sliding puzzle</title>
+		<style>
+			body {
+				margin: 0px;
+				overflow: hidden;
+			}
+			p.unselectable {
+				-moz-user-select: -moz-none;
+				-khtml-user-select: none;
+				-webkit-user-select: none;
+
+				/*
+				 Introduced in IE 10.
+				 See http://ie.microsoft.com/testdrive/HTML5/msUserSelect/
+				*/
+				-ms-user-select: none;
+				user-select: none;
+			}
+			p.centro {
+				position: absolute;
+				top: 50%;
+				left: 50%;
+				transform: translate(-50%, -150%);
+			}
+			#congratulations {
+				background-color: rgba(0, 0, 0, 0.75);
+				display: none;
+				width: 100%;
+				height: 100%;
+				position: absolute;
+				top: 0px;
+				left: 0px;
+			}
+		</style>
+	</head>
+	<body>
+		<canvas id = 'canvas' style = 'position: absolute;'></canvas>
+		<div id = 'congratulations'>
+			<p class = 'centro unselectable' style = 'font-size: 150px;color: #ffffff;'>congratulations</p>
+		</div>
+		<script>
+			class Bloco {
+				constructor(i, j, texto) {
+					this.w = lado / quantidade_quadrados;
+					this.h = lado / quantidade_quadrados;
+					this.i = i;
+					this.j = j;
+					this.x = this.w * this.i;
+					this.y = this.h * this.j;
+					this.texto = texto + '';
+				}
+				atualizar_variaveis() {
+					this.w = lado / quantidade_quadrados;
+					this.h = lado / quantidade_quadrados;
+					this.x = this.w * this.i;
+					this.y = this.h * this.j;
+				}
+				desenhar() {
+					pincel.fillStyle = '#40ff40';
+					pincel.strokeStyle = 'black';
+					pincel.fillRect(this.x, this.y, this.h, this.w);
+					pincel.strokeRect(this.x, this.y, this.h, this.w);
+					pincel.fillStyle = 'black';
+					pincel.font = '50px arial';
+					pincel.textAlign = 'center';
+					pincel.fillText(this.texto, this.x + this.w / 2, this.y + this.h / 2 + 12.5);
+				}
+			}
+			function remove_listeners() {
+				canvas.removeEventListener('mousedown', on_mouse_down);
+				canvas.removeEventListener('mouseup', on_mouse_up);
+				canvas.removeEventListener('mousemove', on_mouse_move);
+			}
+			function copy_2d_array(arr) {
+				var array = [];
+				for(var i = 0;i < arr.length;i++) {
+					array.push([...arr[i]]);
+				}
+				return array;
+			}
+			function solved() {
+				return grid.flat().map(obj => (obj || {}).texto) + '' == solucao.flat().map(obj => (obj || {}).texto) + '';
+			}
+			async function on_board_change(grid_snap) {
+				if(blocos == undefined) {
+					return;
+				}
+				if(grid_snap) {
+					for(var bloco of blocos) {
+						bloco.atualizar_variaveis();
+					}
+				}
+				pincel.clearRect(0, 0, largura, altura);
+				for(var bloco of blocos) {
+					bloco.desenhar();
+				}
+				if(solved()) {
+					await new Promise(r => setTimeout(r, 100)); // wait until frame ends :)
+					document.getElementById('congratulations').style.display = 'block';
+					remove_listeners();
+				}
+			}
+			function resize() {
+				largura = window.innerWidth;
+				altura = window.innerHeight;
+				lado = Math.min(altura, largura);
+				canvas.width = lado;
+				canvas.height = lado;
+				if(largura > altura) {
+					canvas.style.left = (largura - altura) / 2 + 'px';
+					canvas.style.top = '0px';
+				} else {
+					canvas.style.left = '0px';
+					canvas.style.top = (altura - largura) / 2 + 'px';
+				}
+				on_board_change(true);
+			}
+			var canvas = document.getElementById('canvas');
+			var pincel = canvas.getContext('2d');
+			resize();
+			window.onresize = resize;
+			var quantidade_quadrados = 5;
+			var blocos = [];
+			for(var i = 0;i < quantidade_quadrados;i++) {
+				for(var j = 0;j < quantidade_quadrados;j++) {
+					var index = j + quantidade_quadrados * i + 1;
+					if(index != quantidade_quadrados ** 2) {
+						blocos.push(new Bloco(j, i, index));
+					}
+				}
+			}
+			var grid = [];
+			for(var i = 0;i < quantidade_quadrados;i++) {
+				grid.push([]);
+				for(var j = 0;j < quantidade_quadrados;j++) {
+					var index = j + quantidade_quadrados * i;
+					grid[i].push(blocos[index]);
+				}
+			}
+			var solucao = copy_2d_array(grid);
+			var quadrado_branco = {i: quantidade_quadrados - 1, j: quantidade_quadrados - 1};
+			var direcoes = [{i: 0, j: -1}, {i: 0, j: 1}, {i: -1, j: 0}, {i: 1, j: 0}];
+			for(var i = 0;i < 1000;i++) {
+				var direcao = direcoes[Math.floor(Math.random() * direcoes.length)];
+				var movimento = JSON.parse(JSON.stringify(quadrado_branco));
+				movimento.i += direcao.i;
+				movimento.j += direcao.j;
+				if(grid[movimento.j] == undefined || grid[movimento.j][movimento.i] == undefined) {
+					continue;
+				}
+				grid[movimento.j][movimento.i].i = quadrado_branco.i;
+				grid[movimento.j][movimento.i].j = quadrado_branco.j;
+				grid[quadrado_branco.j][quadrado_branco.i] = grid[movimento.j][movimento.i];
+				grid[movimento.j][movimento.i] = undefined;
+				quadrado_branco = movimento;
+			}
+
+			on_board_change(true);
+
+
+			var passive = false;
+			try {
+				window.addEventListener('event-listener', null, Object.defineProperty({}, 'passive', {get: () => passive = {passive: true}}));
+			} catch(error) {}
+
+			var posicao_relativa = {x: NaN, y: NaN};
+			var quadrado_pressionado = null;
+			var mouse_pressionado = false;
+			canvas.addEventListener('mousedown', on_mouse_down = function(event) {
+				if(mouse_pressionado || event.button != 0) {
+					return;
+				}
+				var i = Math.floor(quantidade_quadrados * event.layerX / lado);
+				var j = Math.floor(quantidade_quadrados * event.layerY / lado);
+				var quadrado = grid[j][i];
+				if(quadrado != undefined) {
+					posicao_relativa.x = event.layerX - quadrado.x;
+					posicao_relativa.y = event.layerY - quadrado.y;
+					quadrado_pressionado = quadrado;
+					on_board_change(false);
+				}
+				mouse_pressionado = true;
+			}, passive);
+			canvas.addEventListener('mouseup', on_mouse_up = function(event) {
+				if(quadrado_pressionado != null) {
+					var i_prev = quadrado_pressionado.i;
+					var j_prev = quadrado_pressionado.j;
+					var i = Math.floor(quantidade_quadrados * event.layerX / lado);
+					var j = Math.floor(quantidade_quadrados * event.layerY / lado);
+					if(grid[j][i] == undefined && Math.abs(i - i_prev) + Math.abs(j - j_prev) == 1) {
+						grid[j_prev][i_prev] = undefined;
+						grid[j][i] = quadrado_pressionado;
+						quadrado_pressionado.i = i;
+						quadrado_pressionado.j = j;
+					}
+					on_board_change(true);
+				}
+				mouse_pressionado = false;
+				quadrado_pressionado = null;
+			}, passive);
+			canvas.addEventListener('mousemove', on_mouse_move = function(event) {
+				if(mouse_pressionado && quadrado_pressionado != null) {
+					quadrado_pressionado.x = event.layerX - posicao_relativa.x;
+					quadrado_pressionado.y = event.layerY - posicao_relativa.y;
+					on_board_change(false);
+				}
+			}, passive);
+		</script>
+	</body>
+</html>

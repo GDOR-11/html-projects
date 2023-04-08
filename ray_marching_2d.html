@@ -1,0 +1,173 @@
+<html>
+	<head>
+		<title>ray marching 2d</title>
+		<style>
+			body {
+				margin: 0px;
+			}
+		</style>
+	</head>
+	<body>
+		<canvas id = 'canvas' width = 1536 height = 722></canvas>
+		<canvas id = 'canvas2' width = 1536 height = 722 style = 'position: absolute;top: 0px;left: 0px;'></canvas>
+		<script>
+			var pincel = document.getElementById('canvas').getContext('2d');
+			var pincel2 = document.getElementById('canvas2').getContext('2d');
+			pincel.translate(768, 361);
+			pincel2.translate(768, 361);
+			pincel.fillRect(-768, -361, 1536, 722);
+			async function esperar(milissegundos) {
+				return new Promise(resolve => setTimeout(resolve, milissegundos));
+			}
+			function dot(v1, v2) {
+				return v1.x * v2.x + v1.y * v2.y;
+			}
+			function distancia_forma_customizada(ponto, array_pontos) {
+				function calc_dist(x, y, x1, y1, x2, y2) {
+				}
+				pincel.fillStyle = 'grey';
+				pincel.beginPath();
+				pincel.moveTo(array_pontos[0].x, array_pontos[0].y);
+				for(var i = 1;i < array_pontos.length;i++) {
+					pincel.lineTo(array_pontos[i].x, array_pontos[i].y);
+				}
+				pincel.fill();
+				var distancias = [];
+				for(var i = 0;i < array_pontos.length;i++) {
+					var ponto_a = array_pontos[i];
+					var ponto_b = array_pontos[(i + 1) % array_pontos.length];
+
+
+					var A = ponto.x - ponto_a.x;
+					var B = ponto.y - ponto_a.y;
+					var C = ponto_b.x - ponto_a.x;
+					var D = ponto_b.y - ponto_a.y;
+					var param = -1;
+					if (C * C + D * D != 0) {
+						param = (A * C + B * D) / (C * C + D * D);
+					}
+					if(param < 0) {
+						var xx = ponto_a.x;
+						var yy = ponto_a.y;
+					} else if(param > 1) {
+						var xx = ponto_b.x;
+						var yy = ponto_b.y;
+					} else {
+						var xx = ponto_a.x + param * C;
+						var yy = ponto_a.y + param * D;
+					}
+					var d = {
+						x: ponto.x - xx,
+						y: ponto.y - yy
+					}
+					distancias.push(Math.sqrt(d.x ** 2 + d.y ** 2));
+				}
+				return Math.min(...distancias);
+			}
+			function distancia_circulo(ponto, pos, raio) {
+				pincel.fillStyle = 'grey';
+				pincel.beginPath();
+				pincel.arc(pos.x, pos.y, raio, 0, 2 * Math.PI);
+				pincel.fill();
+				return Math.sqrt((pos.x - ponto.x) ** 2 + (pos.y - ponto.y) ** 2) - raio;
+			}
+			function distancia_paralelepipedo(ponto, rot, pos, altura, largura) {
+				pincel.fillStyle = 'grey';
+				pincel.translate(pos.x, pos.y);
+				pincel.rotate(-rot);
+				pincel.fillRect(-largura / 2, -altura / 2, largura, altura);
+				pincel.rotate(rot);
+				pincel.translate(-pos.x, -pos.y);
+				var p = {
+					x: (ponto.x - pos.x) * Math.cos(rot) - (ponto.y - pos.y) * Math.sin(rot),
+					y: (ponto.x - pos.x) * Math.sin(rot) + (ponto.y - pos.y) * Math.cos(rot)
+				}
+				var d = {
+					x: Math.max(Math.abs(p.x) - largura / 2, 0),
+					y: Math.max(Math.abs(p.y) - altura / 2, 0)
+				}
+				return Math.sqrt(d.x ** 2 + d.y ** 2);
+			}
+			function distancia_capsula(ponto, ponto_a, ponto_b, raio) {
+				pincel.lineWidth = raio * 2;
+				pincel.lineCap = 'round';
+				pincel.strokeStyle = 'grey';
+				pincel.beginPath();
+				pincel.moveTo(ponto_a.x, ponto_a.y);
+				pincel.lineTo(ponto_b.x, ponto_b.y);
+				pincel.stroke();
+				var ab = {
+					x: ponto_b.x - ponto_a.x,
+					y: ponto_b.y - ponto_a.y
+				}
+				var ap = {
+					x: ponto.x - ponto_a.x, y:
+					ponto.y - ponto_a.y
+				}
+				var t = dot(ab, ap) / dot(ab, ab);
+				t = Math.max(Math.min(t, 1), 0);
+				var c = {
+					x: ponto_a.x + t * ab.x,
+					y: ponto_a.y + t * ab.y,
+				}
+				return Math.sqrt((ponto.x - c.x) ** 2 + (ponto.y - c.y) ** 2) - raio;
+			}
+			function distancia(ponto) {
+				var dist = Infinity;
+				var dist_circulo = distancia_circulo(ponto, {x: 300, y: -150}, 100);
+				var dist_paralelepipedo = distancia_paralelepipedo(ponto, -1, {x: 100, y: 50}, 100, 200);
+				var dist_capsula = distancia_capsula(ponto, {x: -100, y: -300}, {x: -300, y: -200}, 20);
+				var dist_capsula2 = distancia_capsula(ponto, {x: -400, y: 300}, {x: -500, y: 100}, 20);
+				var dist_circulo2 = distancia_circulo(ponto, {x: 25, y: 250}, 75);
+				var dist_circulo3 = distancia_circulo(ponto, {x: -150, y: 250}, 75);
+				var dist_forma_customizada = distancia_forma_customizada(ponto, [{x: -500, y: -100}, {x: -600, y: -150}, {x: -600, y: 0}, {x: -450, y: 50}, {x: -400, y: 0}]);
+				dist = Math.min(dist, dist_circulo, dist_paralelepipedo, dist_capsula, dist_capsula2, dist_circulo2, dist_circulo3, dist_forma_customizada);
+				return dist;
+			}
+			function raymarch(origem_raio, dir_raio) {
+				var dist_origem = 0;
+				for(var i = 0;i < max_passos;i++) {
+					var ponto_atual = {x: origem_raio.x + dist_origem * dir_raio.x, y: origem_raio.y + dist_origem * dir_raio.y};
+					var distancia_atual = distancia(ponto_atual);
+					dist_origem += distancia_atual;
+					pincel.strokeStyle = 'white';
+					pincel.lineWidth = 1;
+					pincel.lineCap = 'butt';
+					pincel.beginPath();
+					pincel.moveTo(origem_raio.x, origem_raio.y);
+					pincel.lineTo(ponto_atual.x, ponto_atual.y);
+					pincel.stroke();
+					pincel.beginPath();
+					pincel.arc(ponto_atual.x, ponto_atual.y, distancia_atual, 0, 2 * Math.PI);
+					pincel.stroke();
+					if(distancia_atual < min_dist || dist_origem > max_dist) {
+						pincel2.fillStyle = 'white';
+						pincel2.beginPath();
+						pincel2.arc(ponto_atual.x, ponto_atual.y, 1, 0, 2 * Math.PI);
+						pincel2.fill();
+						break;
+					}
+				}
+				return dist_origem;
+			}
+			async function atira_raio(angulo) {
+				pincel.fillStyle = 'black';
+				pincel.fillRect(-768, -361, 1536, 722);
+				var dir_raio = {x: Math.cos(angulo), y: -Math.sin(angulo)};
+				raymarch(pos_camera, dir_raio);
+				await esperar(1);
+				atira_raio(angulo + incremento);
+			}
+			
+			var min_dist = 0.1;
+			var max_dist = Math.sqrt(2879137);
+			var max_passos = 128;
+			var pos_camera = {
+				x: -200,
+				y: 0
+			}
+			var incremento = 4 * Math.PI / (1 + Math.sqrt(5)) / 8192;
+			atira_raio(-Math.PI / 2);
+		</script>
+	</body>
+</html>

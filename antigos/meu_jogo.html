@@ -1,0 +1,55 @@
+<meta charset = "UTF-8">
+<canvas width = 1528 height = 706>infelizmente o seu navegador não suporta o código deste jogo /(._.)\</canvas>
+<script>
+	var tela = document.querySelector("canvas");
+	var pincel = tela.getContext("2d");
+    pincel.font = "15px Georgia";
+    pincel.fillStyle = "black";
+    var pontos = 0;
+	var x = 0;
+	var y = -20;
+	var clicou = true;
+	var tempo = 0;
+	var segundos = 1;
+	var contador = 0;
+	function limpaTela(){
+		pincel.clearRect(x - 21, y - 21, 42, 42);
+	};
+	function desenhaCirculo(x, y, raio, cor){
+		pincel.fillStyle = cor;
+		pincel.beginPath();
+		pincel.arc(x, y, raio, 0, 2 * Math.PI);
+		pincel.fill();
+	};
+	function criaAlvo(){
+		if (y <= 686) {
+			limpaTela();
+			y += 1;
+			desenhaCirculo(x, y, 20, "blue");
+		} else {
+			if (contador < 1) {
+				document.write("<h1>VOCÊ PERDEU!</h1><br>");
+				document.write("<h2>HAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHAHHAHAHAHAHAHAHAHA</h2>");
+				document.write("<h3><br>PONTUAÇÃO: " + pontos);
+				document.write("</h3>para tentar de novo clique <a style = 'color:hsl(240, 50%, 50%);text-decoration:none;' href = file:///C:/Users/sidin/Desktop/logica/meu_jogo.html>aqui</a>");
+			}
+			contador = 1;
+		}
+	}
+	function verifica(evento){
+		var xClicado = evento.pageX - tela.offsetLeft;
+		var yClicado = evento.pageY - tela.offsetTop;
+		if (Math.hypot(xClicado - x, yClicado - y) <= 20){
+			pontos++;
+			limpaTela();
+			intervalo();
+			y = -20;
+		};
+	};
+	function intervalo() {
+		x = Math.random() * 1488 + 20;
+		setInterval(criaAlvo, 50);	
+	}
+	intervalo();
+	tela.onmousedown = verifica; 
+</script>

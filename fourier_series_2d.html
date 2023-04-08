@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang = 'pt-BR'>
+	<head>
+		<meta charset = 'utf-8' name = 'viewport' content = 'width = device-width, initial-scale = 1'>
+		<title>fourier series</title>
+		<style>
+			body {
+				margin: 0px;
+				overflow: hidden;
+			}
+		</style>
+	</head>
+	<body>
+		<canvas id = 'canvas2' style = 'background-color: #000'></canvas>
+		<canvas id = 'canvas' style = 'position: absolute;top: 0px;left: 0px;'></canvas>
+		<script>
+			class Complex {
+				constructor(a, b) {
+					this.a = a;
+					this.b = b;
+				}
+				add(z) {
+					return new Complex(this.a + z.a, this.b + z.b);
+				}
+				mult(z) {
+					return new Complex(this.a * z.a - this.b * z.b, this.a * z.b + this.b * z.a);
+				}
+			}
+			function dft(x) {
+				var X = [];
+				var N = x.length;
+				for(var k = 0;k < N;k++) {
+					var soma = new Complex(0, 0);
+					for(var n = 0;n < N;n++) {
+						soma = soma.add(x[n].mult(new Complex(Math.cos(2 * Math.PI * k * n / N), -Math.sin(2 * Math.PI * k * n / N))));
+					}
+					soma.a /= N;
+					soma.b /= N;
+					var frequencia = k;
+					var raio = Math.hypot(soma.a, soma.b);
+					var angulo = Math.atan2(soma.b, soma.a);
+					X.push({frequencia, raio, angulo});
+				}
+				return X;
+			}
+			var canvas = document.getElementById('canvas');
+			var pincel = canvas.getContext('2d');
+			var canvas2 = document.getElementById('canvas2');
+			var pincel2 = canvas2.getContext('2d');
+			var largura = window.innerWidth;
+			var altura = window.innerHeight;
+			canvas.width = largura;
+			canvas.height = altura;
+			canvas2.width = largura;
+			canvas2.height = altura;
+			window.onresize = function() {
+				largura = window.innerWidth;
+				altura = window.innerHeight;
+				canvas.width = largura;
+				canvas.height = altura;
+				canvas2.width = largura;
+				canvas2.height = altura;
+			}
+			var t = 0;
+			var fourier;
+			var x_anterior = undefined;
+			var y_anterior = undefined;
+			function renderizar() {
+				pincel2.fillStyle = `rgba(0, 0, 0, ${2 / caminho.length})`;
+				pincel2.fillRect(0, 0, largura, altura);
+				pincel.clearRect(0, 0, largura, altura);
+				var x = 0;
+				var y = 0;
+				for(var circulo of fourier) {
+					var proximo_x = x + circulo.raio * Math.cos(circulo.frequencia * t + circulo.angulo);
+					var proximo_y = y + circulo.raio * Math.sin(circulo.frequencia * t + circulo.angulo);
+					pincel.strokeStyle = 'white';
+					pincel.beginPath();
+					pincel.moveTo(x + largura / 2, y + altura / 2);
+					pincel.lineTo(proximo_x + largura / 2, proximo_y + altura / 2);
+					pincel.stroke();
+					pincel.strokeStyle = 'rgba(255, 255, 255, 0.4)';
+					pincel.beginPath();
+					pincel.arc(x + largura / 2, y + altura / 2, Math.hypot(proximo_x - x, proximo_y - y), 0, 2 * Math.PI);
+					pincel.stroke();
+					x = proximo_x;
+					y = proximo_y;
+				}
+				if(!isNaN(x_anterior) && !isNaN(y_anterior)) {
+					pincel2.strokeStyle = 'white';
+					pincel2.beginPath();
+					pincel2.moveTo(x_anterior + largura / 2, y_anterior + altura / 2);
+					pincel2.lineTo(x + largura / 2, y + altura / 2);
+					pincel2.stroke();
+				}
+				x_anterior = x;
+				y_anterior = y;
+				t += 2 * Math.PI / fourier.length;
+				if(t >= 2 * Math.PI) {
+					t = 0;
+					pincel2.clearRect(0, 0, largura, altura);
+					x_anterior = undefined;
+					y_anterior = undefined;
+				}
+				requestAnimationFrame(renderizar);
+			}
+			var caminho = [];
+			var mouse_pressionado = false;
+			var desenhou = false;
+			var ultima_pos = {clientX: undefined, clientY: undefined};
+			document.onmousedown = function(event) {
+				mouse_pressionado = true;
+			}
+			document.onmouseup = function(event) {
+				if(!desenhou) {
+					fourier = dft(caminho);
+					fourier.sort((a, b) => b.raio - a.raio);
+					desenhou = true;
+					requestAnimationFrame(renderizar);
+				}
+			}
+			document.onmousemove = function(event) {
+				if(mouse_pressionado && !desenhou) {
+					caminho.push(new Complex(event.clientX - largura / 2, event.clientY - altura / 2));
+					pincel.strokeStyle = 'white';
+					pincel.beginPath();
+					pincel.moveTo(ultima_pos.clientX, ultima_pos.clientY);
+					pincel.lineTo(event.clientX, event.clientY);
+					pincel.stroke();
+					ultima_pos = event;
+				}
+			}
+		</script>
+	</body>
+</html>

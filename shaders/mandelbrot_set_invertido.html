@@ -1,0 +1,92 @@
+<html>
+	<head>
+		<meta charset = 'UTF-8'>
+		<title>inverted mandelbrot set</title>
+		<style>
+			body {
+				margin: 0;
+			}
+		</style>
+		<script src = 'http://threejs.org/build/three.min.js'></script>
+	</head>
+	<body>
+		<script id = 'codigo_glsl' type = 'codigo_glsl'>
+			uniform vec2 localizacao;
+			uniform vec2 resolucao;
+			uniform vec2 zoom;
+			void main() {
+				vec2 pos = (gl_FragCoord.xy * 4.0 / resolucao.xy - 2.0) / zoom.xy + localizacao.xy;
+				float cor = 0.0;
+				vec2 z = vec2(0.0, 0.0);
+				float limite = 10000.0;
+				for(float i = 0.0;i < limite;i++) {
+					z = vec2(z.x * z.x - z.y * z.y + pos.x / (pos.x * pos.x + pos.y * pos.y), 2.0 * z.x * z.y - pos.y / (pos.x * pos.x + pos.y * pos.y));
+					if(sqrt(z.x * z.x + z.y * z.y) > 2.0) {
+						break;
+					} else {
+						cor++;
+					}
+				}
+				if(cor < limite) {
+					if(zoom.x > 1.0) {
+						gl_FragColor = vec4(vec3(cor / log2(zoom.x) / 50.0), 1.0);
+					} else {
+						gl_FragColor = vec4(vec3(cor / 50.0), 1.0);
+					}
+				} else {
+					gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0);
+				}
+			}
+		</script>
+		<script>
+			var cena = new THREE.Scene();
+			var camera = new THREE.PerspectiveCamera(90, 1, 0.1, 1000);
+			var renderizador = new THREE.WebGLRenderer(document.body);
+			var tamanho = Math.min(document.body.clientWidth, document.body.clientHeight);
+			renderizador.setSize(tamanho, tamanho);
+			document.body.appendChild(renderizador.domElement);
+
+
+			var pos = new THREE.Vector2(0, 0);
+			var zoom = new THREE.Vector2(1, 1);
+
+			var inputs = {};
+			inputs.resolucao = {type: 'v2', value: new THREE.Vector2(tamanho, tamanho)};
+			inputs.localizacao = {type: 'v2', value: pos};
+			inputs.zoom = {type: 'v2', value: zoom};
+			var codigo_glsl = document.getElementById('codigo_glsl').innerHTML;
+			var material = new THREE.ShaderMaterial({uniforms: inputs, fragmentShader: codigo_glsl});
+			var geometria = new THREE.PlaneGeometry(2, 2);
+			var tela = new THREE.Mesh(geometria, material);
+			cena.add(tela);
+			tela.position.z--;
+
+
+			renderizador.render(cena, camera);
+
+			renderizador.domElement.onclick = function(event) {
+				var x = event.clientX;
+				var y = tamanho / 2 + (tamanho / 2 - event.clientY);
+				var nova_pos = new THREE.Vector2((x * 4 / tamanho - 2) / zoom.x + pos.x, (y * 4 / tamanho - 2) / zoom.y + pos.y);
+				pos = new THREE.Vector2((nova_pos.x + pos.x) / 2, (nova_pos.y + pos.y) / 2);
+				zoom.x *= 2;
+				zoom.y *= 2;
+				inputs.localizacao.value = pos;
+				inputs.zoom.value = zoom;
+				renderizador.render(cena, camera);
+			}
+			renderizador.domElement.oncontextmenu = function(event) {
+				var x = tamanho / 2 + (tamanho / 2 - event.clientX);
+				var y = event.clientY;
+				var nova_pos = new THREE.Vector2((x * 4 / tamanho - 2) / zoom.x + pos.x, (y * 4 / tamanho - 2) / zoom.y + pos.y);
+				pos = nova_pos;
+				zoom.x /= 2;
+				zoom.y /= 2;
+				inputs.localizacao.value = pos;
+				inputs.zoom.value = zoom;
+				renderizador.render(cena, camera);
+				return false;
+			}
+		</script>
+	</body>
+</html>

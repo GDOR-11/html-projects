@@ -1,0 +1,66 @@
+<meta charset = 'UTF-8'>
+<input id = 'texto'>
+<button id = 'botao'>calcular</button>
+<script>
+	function calculaPrimos() {
+		if(numero.value > 1) {
+			document.body.append(document.createTextNode('2, 3'));
+		}
+		var quantidade_tentativas = Math.floor(numero.value / 6);
+		for(var n = 1;n <= quantidade_tentativas;n++) {
+			for(var i = -1;i < 2;i += 2) {
+				var n_6 = n * 6;
+				var tentativa = n_6 + i;
+				var numero_maximo = Math.round(Math.sqrt(tentativa));
+				var divisor_achado = false;
+				for(var j = 0;primos[j] <= numero_maximo;j++) {
+					if(tentativa % primos[j] == 0) {
+						divisor_achado = true;
+						break;
+					}
+				}
+				if(!divisor_achado) {
+					primos[index++] = tentativa;
+					document.body.append(document.createTextNode(', ' + tentativa));
+				}
+			}
+		}
+	}
+	function imprime() {
+		if(numero.value !== '') {
+			primos = new Uint32Array(numero.value);
+			document.body.removeChild(document.getElementById('texto'));
+			document.body.removeChild(document.getElementById('botao'));
+			document.body.append(document.createTextNode('carregando...'));
+			setTimeout(function() {
+				document.body.innerHTML = '';
+				if(numero.value == 1) {
+					document.body.append(document.createTextNode('Não existem números primos até 1'));
+				} else {
+					calculaPrimos();
+					document.body.append(document.createElement('br'));
+					document.body.append(document.createElement('br'));
+					document.body.append(document.createTextNode('A quantidade de números primos até ' + numero.value + ' é ' + index));
+				}
+			}, 0);
+		}
+	}
+	function verificaSintaxeCorreta() {
+		if(isNaN(parseInt(numero.value))) {
+			numero.value = '';
+		} else {
+			numero.value = parseInt(numero.value);
+		}
+		if(numero.value == 0) {
+			numero.value = '';
+		}
+	}
+	var numero = document.getElementById('texto');
+	var index = 2;
+	numero.oninput = verificaSintaxeCorreta;
+	var botao = document.getElementById('botao');
+	setTimeout(function() {
+		numero.focus();
+	}, 0);
+	botao.onclick = imprime;
+</script>

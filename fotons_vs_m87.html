@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang = 'pt-BR'>
+	<head>
+		<meta charset = 'utf-8' name = 'viewport' content = 'width = device-width, initial-scale = 1'>
+		<title>relatividade geral</title>
+		<style>
+			body {
+				margin: 0px;
+				overflow: hidden;
+			}
+		</style>
+	</head>
+	<body>
+		<canvas id = 'canvas'></canvas>
+		<script>
+			class BuracoNegro {
+				constructor(x, y, m) {
+					this.pos = {x, y};
+					this.m = m;
+				}
+				desenhar() {
+					pincel.strokeStyle = 'black';
+					pincel.lineJoin = 'round';
+					pincel.lineWidth = (2 * G * this.m / (c * c)) * 2; // schwarzschild radius
+					pincel.strokeRect(this.pos.x, this.pos.y, 1, 1);
+				}
+			}
+			class Foton {
+				constructor(x, y, vx, vy, buraco_negro) {
+					var l = Math.hypot(vx, vy);
+					vx *= c / l;
+					vy *= c / l;
+					function polar(x, y, vx, vy) {
+						var theta = Math.atan2(y - buraco_negro.pos.y, x - buraco_negro.pos.x);
+						var r = Math.hypot(x - buraco_negro.pos.x, y - buraco_negro.pos.y);
+						var b_v_1 = {x: Math.cos(theta), y: Math.sin(theta)};
+						var l_1 = (vx * b_v_1.x + vy * b_v_1.y);
+						var b_v_2 = {x: -Math.sin(theta), y: Math.cos(theta)};
+						var l_2 = (vx * b_v_2.x + vy * b_v_2.y);
+						return [
+							{
+								t: 0,
+								r,
+								theta
+							}, {
+								t: 0,
+								r: l_1,
+								theta: l_2 / r
+							}
+						];
+					}
+					var polar = polar(x, y, vx, vy);
+					this.pos = polar[0];
+					this.v = polar[1];
+				}
+				desenhar(buraco_negro) {
+					pincel.fillStyle = 'yellow';
+					pincel.fillRect(this.pos.r * Math.cos(this.pos.theta) + buraco_negro.pos.x, this.pos.r * Math.sin(this.pos.theta) + buraco_negro.pos.y, 3, 3);
+				}
+				atualizar(dt, buraco_negro) {
+					var acc_t = acceleration(0, [this.v.t, this.v.r, this.v.theta], this.pos.r, buraco_negro.m);
+					var acc_r = acceleration(1, [this.v.t, this.v.r, this.v.theta], this.pos.r, buraco_negro.m);
+					var acc_theta = acceleration(2, [this.v.t, this.v.r, this.v.theta], this.pos.r, buraco_negro.m);
+					this.v.t += acc_t * dt;
+					this.v.r += acc_r * dt;
+					this.v.theta += acc_theta * dt;
+					this.pos.r += this.v.r * dt;
+					this.pos.theta += this.v.theta * dt;
+				}
+			}
+			function metric_tensor(alpha, beta, r, m) {
+				if(alpha == beta) {
+					switch(alpha) {
+						case 0:
+							return c * c - 2 * G * m / r;
+							break;
+						case 1:
+							return -1 / (1 - 2 * G * m / (r * c * c));
+							break;
+						case 2:
+							return -r * r;
+							break;
+					}
+				} else {
+					return 0;
+				}
+			}
+			function dg_dx(alpha, beta, gamma, r, m) {
+				if(gamma == 0 || gamma == 2) {
+					return 0;
+				}
+				var h = 1e-10;
+				return (metric_tensor(alpha, beta, r + h, m) - metric_tensor(alpha, beta, r, m)) / h;
+			}
+			function christoffel_symbol(gamma, alpha, beta, r, m) {
+				return (dg_dx(gamma, alpha, beta, r, m) + dg_dx(gamma, beta, alpha, r, m) - dg_dx(alpha, beta, gamma, r, m)) / (2 * metric_tensor(gamma, gamma, r, m));
+			}
+			function acceleration(alpha, v, r, m) {
+				var soma = 0;
+				for(var beta = 0;beta <= 2;beta++) {
+					for(var gamma = 0;gamma <= 2;gamma++) {
+						soma -= christoffel_symbol(alpha, beta, gamma, r, m) * v[beta] * v[gamma];
+					}
+				}
+				return soma;
+			}
+			var canvas = document.getElementById('canvas');
+			var pincel = canvas.getContext('2d');
+			var largura = window.innerWidth;
+			var altura = window.innerHeight;
+			canvas.width = largura;
+			canvas.height = altura;
+			window.onresize = function() {
+				largura = window.innerWidth;
+				altura = window.innerHeight;
+				var img_data = pincel.getImageData(0, 0, canvas.width, canvas.height);
+				canvas.width = Math.max(canvas.width, largura);
+				canvas.height = Math.max(canvas.height, altura);
+				pincel.putImageData(img_data, 0, 0);
+			}
+
+			const c = 100;
+			const G = 1;
+			var buraco_negro = new BuracoNegro(largura / 2, altura / 2, 500000);
+			var fotons = [];
+			for(var y = 0;y < altura;y += 1) {
+				fotons.push(new Foton(0, y, 1, 0, buraco_negro));
+			}
+
+			var dt = 1 / 600;
+			function renderizar() {
+				pincel.clearRect(0, 0, largura, altura);
+				buraco_negro.desenhar();
+				for(var foton of fotons) {
+					foton.desenhar(buraco_negro);
+					for(var i = 0;i < 10;i++) {
+						foton.atualizar(dt, buraco_negro);
+					}
+				}
+				requestAnimationFrame(renderizar);
+			}
+			requestAnimationFrame(renderizar);
+		</script>
+	</body>
+</html>

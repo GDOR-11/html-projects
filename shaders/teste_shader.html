@@ -1,0 +1,48 @@
+<html>
+	<head>
+		<style>
+			body {
+				margin:0;
+			}
+		</style>
+		<script src = 'http://threejs.org/build/three.min.js'></script>
+	</head>
+	<body>
+		<script id = 'codigo_glsl' type = 'codigo_glsl'>
+			uniform vec2 resolucao;
+			uniform float tempo;
+			void main() {
+				vec2 pos = gl_FragCoord.xy / resolucao.xy;
+				vec4 cor = vec4((cos(tempo) / 2.0 + 0.5) * pos.x, (cos(tempo - 2.09439510239) / 2.0 + 0.5) * pos.y, (cos(tempo + 2.09439510239) / 2.0 + 0.5) * (pos.x + pos.y) / 2.0, 1.0);
+				gl_FragColor = cor;
+			}
+		</script>
+		<script>
+			var cena = new THREE.Scene();
+			var camera = new THREE.PerspectiveCamera(90 * document.body.clientHeight / document.body.clientWidth, document.body.clientWidth / document.body.clientHeight, 0.1, 1000);
+			var renderizador = new THREE.WebGLRenderer(document.body);
+			renderizador.setSize(document.body.clientWidth, document.body.clientHeight);
+			document.body.appendChild(renderizador.domElement);
+			var relogio = new THREE.Clock();
+
+
+			var inputs = {};
+			inputs.resolucao = {type: 'v2', value: new THREE.Vector2(document.body.clientWidth, document.body.clientHeight)};
+			inputs.tempo = {type: 'float', value: relogio.getElapsedTime()};
+			var codigo_glsl = document.getElementById('codigo_glsl').innerHTML;
+			var material = new THREE.ShaderMaterial({uniforms:inputs, fragmentShader:codigo_glsl});
+			var geometria = new THREE.PlaneGeometry(10, 10);
+			var tela = new THREE.Mesh(geometria, material);
+			cena.add(tela);
+			tela.position.z--;
+
+
+			function renderizar() {
+				inputs.tempo.value = relogio.getElapsedTime();
+				renderizador.render(cena, camera);
+				requestAnimationFrame(renderizar);
+			}
+			renderizar();
+		</script>
+	</body>
+</html>

@@ -1,0 +1,219 @@
+<body style = 'margin: 0px;overflow: hidden;' id = 'body'>
+	<script src = '../three.min.js'></script>
+	<script src = '../OrbitControls.js'></script>
+	<script src = 'ammo.js'></script>
+	<script>
+		var console_log = console.log;
+		var console_warn = console.warn;
+		var console_error = console.error;
+		console.log = function() {};
+		console.warn = function() {};
+		console.error = function() {};
+
+		console_log('Atenção');
+		console_log('console.log, console.warn e console.error estão desabilitados neste programa, se quiser usa-los, substitua o ponto por um underline');
+
+		var body = document.getElementById('body');
+		var camera, controles, cena, renderizador;
+		var relogio = new THREE.Clock();
+
+		var gravidade = -9.8;
+		var mundo_fisico;
+		var objetos_rigidos = [];
+		var dobradica;
+		var cabo;
+		var transformacoes_corpos;
+
+		var rotacao_braco = 0;
+
+		Ammo().then(function(ammojs) {
+			Ammo = ammojs;
+			inicializar();
+			animacoes();
+		});
+
+		function inicializar() {
+			inicializar_graficos();
+			inicializar_fisica();
+			criar_objetos();
+			interacao_usuario();
+		}
+
+		function inicializar_graficos() {
+			camera = new THREE.PerspectiveCamera(90 * body.clientHeight / body.clientWidth, body.clientWidth / body.clientHeight, 1, 8.988465674311579e+307);
+			cena = new THREE.Scene();
+			cena.background = new THREE.Color(0xbfd1e5);
+			camera.position.set(-200, 200, -200);
+
+			renderizador = new THREE.WebGLRenderer();
+			renderizador.setPixelRatio(window.devicePixelRatio);
+			renderizador.setSize(body.clientWidth, body.clientHeight);
+			renderizador.shadowMap.enabled = true;
+			renderizador.shadowMap.type = THREE.PCFSoftShadowMap; // default THREE.PCFShadowMap
+			body.appendChild(renderizador.domElement);
+
+			controles = new THREE.OrbitControls(camera, renderizador.domElement);
+			controles.target.set(0, 0, 0);
+			controles.update();
+
+			var luz1 = new THREE.DirectionalLight(0xffffff, 1);
+			luz1.position.set(-10, 10, 10);
+			// luz1.castShadow = true;
+			// luz1.shadow.camera.left = -1000;
+			// luz1.shadow.camera.right = 1000;
+			// luz1.shadow.camera.top = 1000;
+			// luz1.shadow.camera.bottom = -1000;
+			// luz1.shadow.mapSize.x = 10000;
+			// luz1.shadow.mapSize.y = 10000;
+			cena.add(luz1);
+
+			var luz2 = new THREE.AmbientLight(0x404040);
+			cena.add(luz2);
+		}
+
+		function inicializar_fisica() {
+			var configuracoes_colisao = new Ammo.btSoftBodyRigidBodyCollisionConfiguration();
+			var dispatcher = new Ammo.btCollisionDispatcher(configuracoes_colisao);
+			var broadphase = new Ammo.btDbvtBroadphase();
+			var Constraintsolver = new Ammo.btSequentialImpulseConstraintSolver();
+			var softBodySolver = new Ammo.btDefaultSoftBodySolver();
+			mundo_fisico = new Ammo.btSoftRigidDynamicsWorld(dispatcher, broadphase, Constraintsolver, configuracoes_colisao, softBodySolver);
+			mundo_fisico.setGravity(new Ammo.btVector3(0, gravidade, 0));
+			mundo_fisico.getWorldInfo().set_m_gravity(new Ammo.btVector3(0, gravidade, 0));
+			transformacoes_corpos = new Ammo.btTransform();
+		}
+
+		function criar_objetos() {
+			var pos = new THREE.Vector3();
+			var quat = new THREE.Quaternion();
+
+			var altura = 100;
+			var largura = 100;
+			var profundidade = 100;
+			var grossura = 1;
+			var opacidade = 0.2;
+
+			pos.set(0, -altura / 2 - grossura / 2, 0);
+			quat.set(0, 0, 0, 1);
+			var chao = cria_paralelepipedo(profundidade + grossura * 2, grossura, largura + grossura * 2, 0, pos, quat, new THREE.MeshPhongMaterial({color:0xFFFFFF, opacity: opacidade, transparent: true}));
+
+			pos.set(0, 0, largura / 2 + grossura / 2);
+			var parede1 = cria_paralelepipedo(profundidade + grossura * 2, altura, grossura, 0, pos, quat, new THREE.MeshPhongMaterial({color:0xFFFFFF, opacity: opacidade, transparent: true}));
+
+			pos.set(0, 0, -largura / 2 - grossura / 2);
+			var parede2 = cria_paralelepipedo(profundidade + grossura * 2, altura, grossura, 0, pos, quat, new THREE.MeshPhongMaterial({color:0xFFFFFF, opacity: opacidade, transparent: true}));
+
+			pos.set(profundidade / 2 + grossura / 2, 0, 0);
+			var parede3 = cria_paralelepipedo(grossura, altura, largura, 0, pos, quat, new THREE.MeshPhongMaterial({color:0xFFFFFF, opacity: opacidade, transparent: true}));
+
+			pos.set(-profundidade / 2 - grossura / 2, 0, 0);
+			var parede4 = cria_paralelepipedo(grossura, altura, largura, 0, pos, quat, new THREE.MeshPhongMaterial({color:0xFFFFFF, opacity: opacidade, transparent: true}));
+
+			pos.set(0, altura / 2 + grossura / 2, 0);
+			var teto = cria_paralelepipedo(profundidade + grossura * 2, grossura, largura + grossura * 2, 0, pos, quat, new THREE.MeshPhongMaterial({color:0xFFFFFF, opacity: opacidade, transparent: true}));
+
+			var massa_particula = 1;
+			var raio_particula = 1;
+			var num_particulas_largura = 9;
+			var num_particulas_altura = 50;
+			var num_particulas_profundidade = 9;
+			var x0 = -profundidade / 2 + raio_particula;
+			var y0 = -altura / 2 + raio_particula;
+			var z0 = -largura / 2 + raio_particula;
+			pos.set(x0, y0, z0);
+			quat.set(0, 0, 0, 1);
+
+			for(var i = 0;i < num_particulas_altura;i++) {
+				for(var j = 0;j < num_particulas_largura;j++) {
+					for(var k = 0;k < num_particulas_profundidade;k++) {
+						var particula = new THREE.Mesh(new THREE.SphereBufferGeometry(raio_particula, 10, 10), new THREE.MeshPhongMaterial({color:0x0090FF}));
+						var formato_bola = new Ammo.btSphereShape(raio_particula);
+						quat.set(0, 0, 0, 1);
+						cria_corpo_rigido(particula, formato_bola, massa_particula, pos, quat);
+						particula.userData.physicsBody.setFriction(0);
+						particula.userData.physicsBody.setRestitution(0);
+						pos.x += raio_particula * 2;
+					}
+					pos.x = x0;
+					pos.z += raio_particula * 2;
+				}
+				pos.z = z0;
+				pos.y += raio_particula * 2;
+			}
+
+
+
+			// setInterval(function() {
+			// 	var particula = new THREE.Mesh(new THREE.SphereBufferGeometry(raio_particula, 20, 20), new THREE.MeshPhongMaterial({color:0x0090FF}));
+			// 	particula.castShadow = true;
+			// 	particula.receiveShadow = true;
+			// 	var formato_bola = new Ammo.btSphereShape(raio_particula);
+			// 	pos.set(0, 50, 0);
+			// 	quat.set(0, 0, 0, 1);
+			// 	cria_corpo_rigido(particula, formato_bola, massa_particula, pos, quat);
+			// 	particula.userData.physicsBody.setFriction(0);
+			// 	particula.userData.physicsBody.setRestitution(0);
+			// }, 1);
+		}
+
+		function cria_paralelepipedo(sx, sy, sz, mass, pos, quat, material) {
+			var threeObject = new THREE.Mesh(new THREE.BoxBufferGeometry(sx, sy, sz, 1, 1, 1), material);
+			var forma = new Ammo.btBoxShape(new Ammo.btVector3(sx * 0.5, sy * 0.5, sz * 0.5));
+			cria_corpo_rigido(threeObject, forma, mass, pos, quat);
+			return threeObject;
+		}
+
+		function cria_corpo_rigido(threeMesh, forma, massa, pos, quat) {
+			threeMesh.position.copy(pos);
+			threeMesh.quaternion.copy(quat);
+
+			var transformacao = new Ammo.btTransform();
+			transformacao.setIdentity();
+			transformacao.setOrigin(new Ammo.btVector3(pos.x, pos.y, pos.z));
+			transformacao.setRotation(new Ammo.btQuaternion(quat.x, quat.y, quat.z, quat.w));
+			var estado_locomocao = new Ammo.btDefaultMotionState(transformacao);
+
+			var inercia = new Ammo.btVector3(0, 0, 0);
+			forma.calculateLocalInertia(massa, inercia);
+
+			var informacoes_construcao = new Ammo.btRigidBodyConstructionInfo(massa, estado_locomocao, forma, inercia);
+			var corpo = new Ammo.btRigidBody(informacoes_construcao);
+
+			threeMesh.userData.physicsBody = corpo;
+			cena.add(threeMesh);
+
+			if(massa > 0) {
+				objetos_rigidos.push(threeMesh);
+				corpo.setActivationState(4);
+			}
+			mundo_fisico.addRigidBody(corpo);
+		}
+
+		function animacoes() {
+			renderizar();
+			requestAnimationFrame(animacoes);
+		}
+
+		function renderizar() {
+			var tempo_delta = relogio.getDelta();
+			atualizar_fisica(tempo_delta);
+			renderizador.render(cena, camera);
+		}
+
+		function atualizar_fisica(tempo_delta) {
+			mundo_fisico.stepSimulation(tempo_delta / 1, 1);
+			for(var i = 0;i < objetos_rigidos.length;i++) {
+				var three_obj = objetos_rigidos[i];
+				var ammo_obj = three_obj.userData.physicsBody;
+				var estado_movimento = ammo_obj.getMotionState();
+				if(estado_movimento) {
+					estado_movimento.getWorldTransform(transformacoes_corpos);
+					var posicao = transformacoes_corpos.getOrigin();
+					var quaterniao = transformacoes_corpos.getRotation();
+					three_obj.position.set(posicao.x(), posicao.y(), posicao.z());
+					three_obj.quaternion.set(quaterniao.x(), quaterniao.y(), quaterniao.z(), quaterniao.w());
+				}
+			}
+		}
+	</script>
+</body>

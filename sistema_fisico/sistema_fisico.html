@@ -1,0 +1,77 @@
+<body style = 'margin:0px;overflow:hidden;'>
+	<script src = 'matter.min.js'></script>
+	<script>
+		var engine = Matter.Engine.create();
+
+		var renderizador = Matter.Render.create({
+			element: document.body,
+			engine: engine,
+			options: {
+				width: 1536,
+				height: 721,
+				wireframes: false
+			}
+		});
+
+		var forma = Matter.Bodies.polygon(768, 200, 3, 150, {
+			density: 1,
+			friction: 1,
+			frictionAir: 0,
+			restitution: 1.15,
+			chamfer: {
+				radius: 10
+			},
+			render: {
+				fillStyle: '#0000FF',
+				strokeStyle: 'black',
+				lineWidth: 5
+			}
+		});
+		var chao = Matter.Bodies.rectangle(768, 696, 1536, 50, {isStatic: true});
+		var parede1 = Matter.Bodies.rectangle(25, 335.5, 50, 671, {isStatic: true});
+		var parede2 = Matter.Bodies.rectangle(1511, 335.5, 50, 671, {isStatic: true});
+		var teto = Matter.Bodies.rectangle(768, 25, 1436, 50, {isStatic: true});
+
+		Matter.World.add(engine.world, [forma, chao, parede1, parede2, teto]);
+
+		Matter.Events.on(engine, 'collisionStart', function(event) {
+			forma.render.fillStyle = '#FF0000';
+			setTimeout(function() {forma.render.fillStyle = '#0000FF'}, 200);
+		});
+
+		Matter.Engine.run(engine);
+		Matter.Render.run(renderizador);
+
+		setInterval(function() {
+			if(teclas_pressionadas.indexOf(39) != -1) {
+				Matter.Body.applyForce(forma, {x: forma.position.x, y: forma.position.y}, {x: 10, y: 0});
+			}
+			if(teclas_pressionadas.indexOf(37) != -1) {
+				Matter.Body.applyForce(forma, {x: forma.position.x, y: forma.position.y}, {x: -10, y: 0});
+			}
+			if(teclas_pressionadas.indexOf(38) != -1) {
+				Matter.Body.applyForce(forma, {x: forma.position.x, y: forma.position.y}, {x: 0, y: -20});
+			}
+			if(teclas_pressionadas.indexOf(40) != -1) {
+				Matter.Body.applyForce(forma, {x: forma.position.x, y: forma.position.y}, {x: 0, y: 20});
+			}
+			if(teclas_pressionadas.indexOf(68) != -1) {
+				Matter.Body.applyForce(forma, {x: forma.position.x, y: forma.position.y - 50}, {x: 25, y: 0});
+				Matter.Body.applyForce(forma, {x: forma.position.x, y: forma.position.y + 50}, {x: -25, y: 0});
+			}
+			if(teclas_pressionadas.indexOf(65) != -1) {
+				Matter.Body.applyForce(forma, {x: forma.position.x, y: forma.position.y - 50}, {x: -25, y: 0});
+				Matter.Body.applyForce(forma, {x: forma.position.x, y: forma.position.y + 50}, {x: 25, y: 0});
+			}
+		}, 10);
+		var teclas_pressionadas = []
+		document.onkeydown = function(event) {
+			if(teclas_pressionadas.indexOf(event.keyCode) == -1) {
+				teclas_pressionadas.push(event.keyCode);
+			}
+		}
+		document.onkeyup = function(event) {
+			teclas_pressionadas.splice(teclas_pressionadas.indexOf(event.keyCode), 1);
+		}
+	</script>
+</body>

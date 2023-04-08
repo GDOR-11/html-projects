@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang = 'pt-BR'>
+	<head>
+		<meta charset = 'utf-8' name = 'viewport' content = 'width = device-width, initial-scale = 1'>
+		<title>riemann zeta function</title>
+		<style>
+			body {
+				margin: 0px;
+				overflow: hidden;
+			}
+		</style>
+	</head>
+	<body>
+		<canvas id = 'canvas'></canvas>
+		<script>
+			class NumeroComplexo {
+				constructor(a, b) {
+					this.a = a;
+					this.b = b;
+					this.r = Math.hypot(a, b);
+					this.theta = this.r == 0 ? undefined : b >= 0 ? Math.acos(a / this.r) : 3 * Math.PI / 2 + Math.asin(a / this.r);
+				}
+			}
+			function circulo(x, y, r, cor) {
+				pincel.strokeStyle = cor;
+				pincel.lineWidth = 2 * r;
+				pincel.lineJoin = 'round';
+				pincel.strokeRect(x, y, 1, 1);
+			}
+			function exp(z) {
+				return new NumeroComplexo(Math.exp(z.a) * Math.cos(z.b), Math.exp(z.a) * Math.sin(z.b));
+			}
+			function mul(z1, z2) {
+				return new NumeroComplexo(z1.a * z2.a - z1.b * z2.b, z1.a * z2.b + z1.b * z2.a);
+			}
+			function add(z1, z2) {
+				return new NumeroComplexo(z1.a + z2.a, z1.b + z2.b);
+			}
+			function div(z1, z2) {
+				return new NumeroComplexo((z1.a * z2.a + z1.b * z2.b) / (z2.a * z2.a + z2.b * z2.b), (z1.b * z2.a - z1.a * z2.b) / (z2.a * z2.a + z2.b * z2.b));
+			}
+			function sub(z1, z2) {
+				return new NumeroComplexo(z1.a - z2.a, z1.b - z2.b);
+			}
+			function pow(z1, z2) {
+				return exp(mul(z2, new NumeroComplexo(Math.log(z1.r), z1.theta)));
+			}
+			function riemann_zeta(x, y) {
+				pincel.clearRect(0, 0, largura, altura);
+				x -= largura / 2;
+				y -= altura / 2;
+				var z = new NumeroComplexo(x / 100, y / 100);
+				var soma = new NumeroComplexo(0, 0);
+				circulo(z.a * 100 + largura / 2, z.b * 100 + altura / 2, 5, 'yellow');
+				var i = 1;
+				var media = new NumeroComplexo(0, 0);
+				intervalo = setInterval(function() {
+					for(var j = 0;j < 1000;j++) {
+						var proxima_soma = add(soma, div(new NumeroComplexo(1, 0), pow(new NumeroComplexo(i, 0), z)));
+						pincel.strokeStyle = `hsl(${i}, 100%, 50%)`;
+						pincel.lineWidth = 1;
+						pincel.beginPath();
+						pincel.moveTo(soma.a * 100 + largura / 2, soma.b * 100 + altura / 2);
+						pincel.lineTo(proxima_soma.a * 100 + largura / 2, proxima_soma.b * 100 + altura / 2);
+						pincel.stroke();
+						if(sub(soma, proxima_soma).r > 1e-8) {
+							circulo(proxima_soma.a * 100 + largura / 2, proxima_soma.b * 100 + altura / 2, 0.5, pincel.strokeStyle);
+						} else {
+							circulo(proxima_soma.a * 100 + largura / 2, proxima_soma.b * 100 + altura / 2, 5, 'yellow');
+							clearInterval(intervalo);
+							break;
+						}
+						soma = proxima_soma;
+						media += soma / 1000;
+						i++;
+					}
+				}, 1);
+			}
+			var canvas = document.getElementById('canvas');
+			var pincel = canvas.getContext('2d');
+			var largura = window.innerWidth;
+			var altura = window.innerHeight;
+			canvas.width = largura;
+			canvas.height = altura;
+			window.onresize = function() {
+				largura = window.innerWidth;
+				altura = window.innerHeight;
+				canvas.width = largura;
+				canvas.height = altura;
+			}
+			var intervalo;
+			document.onmousedown = function(event) {
+				clearInterval(intervalo);
+				riemann_zeta(event.clientX, event.clientY);
+			}
+		</script>
+	</body>
+</html>

@@ -1,0 +1,313 @@
+<head><title>asteróides</title></head>
+<body style = 'margin:0px;overflow:hidden;'><canvas id = 'canvas' width = 1536 height = 722></canvas>
+	<script>
+		class Foguete {
+			constructor() {
+				this.x = 0;
+				this.y = 0;
+				this.a = 0;
+				this.v = 0;
+				this.inercia = undefined;
+				this.mira = []
+			}
+			desenhar() {
+				pincel.lineWidth = 1;
+				pincel.strokeStyle = 'red';
+				pincel.beginPath();
+				pincel.moveTo(this.x, this.y);
+				pincel.lineTo(this.mira[0], this.mira[1]);
+				pincel.stroke();
+				pincel.fillStyle = 'yellow';
+				pincel.translate(this.x, this.y);
+				pincel.rotate(this.a);
+				pincel.beginPath();
+				pincel.moveTo(0, 10);
+				pincel.lineTo(7.5, -10);
+				pincel.lineTo(-7.5, -10);
+				pincel.lineTo(0, 10);
+				pincel.fill();
+				pincel.rotate(-this.a);
+				pincel.translate(-this.x, -this.y);
+			}
+			mover(sentido) {
+				if(this.inercia) {
+					clearInterval(this.inercia);
+					this.inercia = undefined;
+				}
+				if(!(this.v >= 5 && sentido == 1) && !(this.v <= -5 && sentido == -1)){
+					this.v += sentido / 10;
+				}
+				this.x += -Math.sin(this.a) * this.v;
+				this.y += Math.cos(this.a) * this.v;
+				if(Math.abs(this.x) > 768)
+					this.x *= -1;
+				if(Math.abs(this.y) > 361)
+					this.y *= -1;
+			}
+			desacelerar() {
+				this.inercia = setTimeout(function() {
+					if(foguete.v != 0) {
+						if(foguete.v > 0)
+							foguete.v -= 0.1;
+						if(foguete.v < 0)
+							foguete.v += 0.1;
+						foguete.v = Math.round(foguete.v * 10) / 10;
+						foguete.x += -Math.sin(foguete.a) * foguete.v;
+						foguete.y += Math.cos(foguete.a) * foguete.v;
+						if(foguete.x < -768)
+							foguete.x = 768;
+						if(foguete.x > 768)
+							foguete.x = -768;
+						if(foguete.y < -361)
+							foguete.y = 361;
+						if(foguete.y > 361)
+							foguete.y = -361;
+						foguete.desacelerar();
+					}
+				}, 10);
+			}
+			girar(sentido) {
+				this.a += sentido / Math.abs(sentido) / 25;
+			}
+			atirar() {
+				var xParedes = [-768, 768, 768, -768, -768];
+				var yParedes = [-361, -361, 361, 361, -361];
+				var x1 = this.x;
+				var y1 = this.y;
+				var x2 = this.x - Math.sin(foguete.a);
+				var y2 = this.y + Math.cos(foguete.a);
+				for(var i = 0;i < xParedes.length - 1;i++) {
+					var den = (xParedes[i] - xParedes[i + 1]) * (y1 - y2) - (yParedes[i] - yParedes[i + 1]) * (x1 - x2);
+					if(den != 0) {
+						var t = ((xParedes[i] - x1) * (y1 - y2) - (yParedes[i] - y1) * (x1 - x2)) / den;
+						var u = -((xParedes[i] - xParedes[i + 1]) * (yParedes[i] - y1) - (yParedes[i] - yParedes[i + 1]) * (xParedes[i] - x1)) / den;
+						if(0 <= t && t <= 1 && u > 0) {
+							this.mira = [xParedes[i] + t * (xParedes[i + 1] - xParedes[i]), yParedes[i] + t * (yParedes[i + 1] - yParedes[i])];
+						}
+					}
+				}
+				var asteroide_acertado;
+				var dist = Infinity;
+				for(var i = 0;i < asteroides.length;i++) {
+					if(calc_dist(asteroides[i].x, asteroides[i].y, this.x, this.y, this.mira[0], this.mira[1]) < asteroides[i].r) {
+						if(asteroide_acertado) {
+							if(Math.hypot(asteroides[i].x - this.x, asteroides[i].y - this.y) < dist) {
+								asteroide_acertado = asteroides[i];
+								dist = Math.hypot(asteroide_acertado.x - this.x, asteroide_acertado.y - this.y);
+							}
+						} else {
+							asteroide_acertado = asteroides[i];
+							dist = Math.hypot(asteroide_acertado.x - this.x, asteroide_acertado.y - this.y);
+						}
+					}
+				}
+				if(asteroide_acertado) {
+					pontos += 5;
+					this.mira = [asteroide_acertado.x, asteroide_acertado.y];
+					asteroides.splice(asteroides.indexOf(asteroide_acertado), 1);
+				} else {
+					if(pontos >= 1) {
+						pontos--;
+					}
+				}
+				setTimeout(function() {
+					foguete.mira = [];
+				}, 100);
+			}
+		}
+		class Asteroide {
+			constructor() {
+				var numero_aleatorio = Math.random();
+				if(numero_aleatorio < 0.25) {
+					this.x = Math.random() * 1536 - 768;
+					this.y = -361;
+				} else if(numero_aleatorio < 0.5) {
+					this.x = Math.random() * 1536 - 768;
+					this.y = 361;
+				} else if(numero_aleatorio < 0.75) {
+					this.x = -768;
+					this.y = Math.random() * 722 - 361;
+				} else {
+					this.x = 768;
+					this.y = Math.random() * 722 - 361;
+				}
+				this.r = Math.random() * 5 + 15;
+				this.dir = Math.random() * 2 * Math.PI;
+				this.v = Math.random() + 1;
+			}
+			desenhar() {
+				pincel.fillStyle = 'brown';
+				pincel.beginPath();
+				pincel.arc(this.x, this.y, this.r, 0, 2 * Math.PI);
+				pincel.fill();
+			}
+			mover() {
+				this.x += -Math.sin(this.dir) * this.v;
+				this.y += Math.cos(this.dir) * this.v;
+				if(this.x < -(768 + this.r))
+					this.x = 768 + this.r;
+				if(this.x > 768 + this.r)
+					this.x = -(768 + this.r);
+				if(this.y < -(361 + this.r))
+					this.y = 361 + this.r;
+				if(this.y > 361 + this.r)
+					this.y = -(361 + this.r);
+			}
+			verifica_colisao_foguete() {
+				var x1 = 10 * (-Math.sin(foguete.a)) + foguete.x;
+				var y1 = 10 * Math.cos(foguete.a) + foguete.y;
+				var x2 = 12.5 * (-Math.sin(foguete.a + 4 * Math.PI / 5)) + foguete.x;
+				var y2 = 12.5 * Math.cos(foguete.a + 4 * Math.PI / 5) + foguete.y;
+				var x3 = 12.5 * (-Math.sin(foguete.a - 4 * Math.PI / 5)) + foguete.x;
+				var y3 = 12.5 * Math.cos(foguete.a - 4 * Math.PI / 5) + foguete.y;
+				return calc_dist(this.x, this.y, x1, y1, x2, y2) < this.r || calc_dist(this.x, this.y, x2, y2, x3, y3) < this.r || calc_dist(this.x, this.y, x1, y1, x3, y3) < this.r
+			}
+			verifica_colisao_asteroides() {
+				for(var i = 0;i < asteroides.length;i++) {
+					if(asteroides[i] == this) {
+						continue;
+					} else {
+						if((Math.hypot(this.x - asteroides[i].x, this.y - asteroides[i].y) < (this.r + asteroides[i].r)) && (this.r < asteroides[i].r)) {
+							var vx1 = -Math.sin(this.dir) * this.v;
+							var vy1 = Math.cos(this.dir) * this.v;
+							var vx2 = -Math.sin(asteroides[i].dir) * this.v;
+							var vy2 = Math.cos(asteroides[i].dir) * this.v;
+							var nvx = (vx1 * (this.r ** 2) + vx2 * (asteroides[i].r ** 2)) / (this.r ** 2 + asteroides[i].r ** 2);
+							var nvy = (vy1 * (this.r ** 2) + vy2 * (asteroides[i].r ** 2)) / (this.r ** 2 + asteroides[i].r ** 2);
+							var nv = Math.hypot(nvx, nvy);
+							var ndir = Math.asin(-nvx / nv);
+							asteroides[i].v = nv;
+							asteroides[i].dir = ndir;
+							asteroides[i].r = Math.sqrt(asteroides[i].r ** 2 + this.r ** 2) * 0.75;
+							asteroides.splice(asteroides.indexOf(this), 1);
+						}
+					}
+				}
+			}
+		}
+		function calc_dist(x, y, x1, y1, x2, y2) {
+			var A = x - x1;
+			var B = y - y1;
+			var C = x2 - x1;
+			var D = y2 - y1;
+			var param = -1;
+			if (C * C + D * D != 0)
+				param = (A * C + B * D) / (C * C + D * D);
+			if(param < 0) {
+				var xx = x1;
+				var yy = y1;
+			} else if(param > 1) {
+				var xx = x2;
+				var yy = y2;
+			} else {
+				var xx = x1 + param * C;
+				var yy = y1 + param * D;
+			}
+			var dx = x - xx;
+			var dy = y - yy;
+			return Math.sqrt(dx * dx + dy * dy);
+		}
+		function mostra_pontos() {
+			pincel.transform(1, 0, 0, -1, 0, 0);
+			pincel.font = '20px arial';
+			pincel.lineWidth = 5;
+			pincel.strokeStyle = 'white';
+			pincel.strokeText('pontos: ' + Math.round(pontos * 10) / 10, -45, -341);
+			pincel.fillStyle = 'black';
+			pincel.fillText('pontos: ' + Math.round(pontos * 10) / 10, -45, -341);
+			pincel.transform(1, 0, 0, -1, 0, 0);
+		}
+		var pincel = document.getElementById('canvas').getContext('2d');
+		pincel.transform(1, 0, 0, -1, 768, 361);
+		if(typeof localStorage.getItem('recorde') == 'object')
+			localStorage.setItem('recorde', 0);
+		var foguete = new Foguete();
+		var asteroides = [];
+		for(var i = 0;i < 5;i++) {
+			asteroides.push(new Asteroide());
+		}
+		setInterval(function() {
+			asteroides.push(new Asteroide());
+		}, 200);
+		setInterval(function() {
+			pincel.clearRect(-768, -361, 1536, 722);
+			for(var i = 0;i < asteroides.length;i++) {
+				asteroides[i].mover();
+				asteroides[i].desenhar();
+				if(asteroides[i].verifica_colisao_foguete()) {
+					try {
+						if(pontos > parseFloat(localStorage.getItem('recorde')))
+							localStorage.setItem('recorde', pontos);
+
+						clearInterval(contador);
+
+						document.body.removeChild(document.getElementById('canvas'));
+
+						var titulo = document.createElement('h1');
+						titulo.append('Você perdeu!')
+						document.body.append(titulo);
+
+						var pontos_ganhos = document.createElement('h3');
+						pontos_ganhos.append('Você conseguiu ' + pontos + ' pontos');
+						document.body.append(pontos_ganhos);
+
+						var texto_recorde = document.createElement('p');
+						if(pontos == parseFloat(localStorage.getItem('recorde'))) {
+							texto_recorde.append('novo recorde!');
+						} else {
+							texto_recorde.append('O seu recorde é ' + localStorage.getItem('recorde') + ' pontos');
+						}
+						document.body.append(texto_recorde);
+
+						var texto_tentar_de_novo = document.createElement('p');
+						texto_tentar_de_novo.append('para jogar de novo clique ');
+
+						var link = document.createElement('a');
+						link.setAttribute('style', 'color:hsl(240, 50%, 50%);text-decoration:none;');
+						link.setAttribute('href', window.location.href);
+						link.append('aqui');
+						texto_tentar_de_novo.append(link);
+						document.body.append(texto_tentar_de_novo);
+					} catch(erro) {}
+				}
+				asteroides[i].verifica_colisao_asteroides();
+			}
+			foguete.desenhar();
+			mostra_pontos();
+		}, 10);
+		var teclas_pressionadas = [];
+		var espaco_pressionado = false;
+		document.onkeydown = function(event) {
+			if(teclas_pressionadas.indexOf(event.keyCode) == -1)
+				teclas_pressionadas.push(event.keyCode);
+			if(event.keyCode == 32 && !espaco_pressionado) {
+				foguete.atirar();
+				espaco_pressionado = true;
+			}
+		}
+		document.onkeyup = function(event) {
+			teclas_pressionadas.splice(teclas_pressionadas.indexOf(event.keyCode), 1);
+			if(event.keyCode == 38 || event.keyCode == 40) {
+				foguete.desacelerar();
+			}
+			if(event.keyCode == 32) {
+				espaco_pressionado = false;
+			}
+		}
+		setInterval(function() {
+			if(teclas_pressionadas.indexOf(37) != -1)
+				foguete.girar(1);
+			if(teclas_pressionadas.indexOf(38) != -1)
+				foguete.mover(1);
+			if(teclas_pressionadas.indexOf(39) != -1)
+				foguete.girar(-1);
+			if(teclas_pressionadas.indexOf(40) != -1)
+				foguete.mover(-1);
+		}, 10);
+		var pontos = 0;
+		var contador = setInterval(function() {
+			pontos += 0.2;
+			pontos = Math.round(pontos * 10) / 10;
+		}, 100);
+	</script>
+</body>

@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset = 'utf-8'>
+		<title>evolução</title>
+		<style>
+			body {
+				margin: 0px;
+				overflow: hidden;
+			}
+		</style>
+	</head>
+	<body>
+		<canvas id = 'canvas'></canvas>
+		<script>
+			class Alimento {
+				constructor(tipo, x, y) {
+					this.x = x || Math.random() * (largura - 20) + 10;
+					this.y = y || Math.random() * (altura - 20) + 10;
+					this.tipo = tipo;
+					this.idade = 0;
+				}
+				desenhar() {
+					pincel.fillStyle = this.tipo == 'comida' ? 'green' : 'red';
+					pincel.beginPath();
+					pincel.arc(this.x, this.y, 1.5, 0, 2 * Math.PI);
+					pincel.fill();
+				}
+				comer(array) {
+					array.splice(array.indexOf(this), 1);
+				}
+			}
+			class SerVivo {
+				constructor(DNA, x, y) {
+					this.x = x || Math.random() * largura;
+					this.y = y || Math.random() * altura;
+					this.vx = 0;
+					this.vy = 0;
+					this.DNA = DNA || {atracao_comida: Math.random() * 5, repulsao_veneno: Math.random() * 5, raio_percepcao: Math.random() * 115 + 60, probabilidade_reproducao: Math.random() * 0.05};
+					this.saude = 1;
+					this.reproducao = 0;
+					this.veneno_comido = 0;
+				}
+				atualizar(comida, veneno, array, dt) {
+					this.saude -= (this.veneno_comido + 1) * 0.025 * dt;
+					for(var alimento of comida) {
+						var diffx = alimento.x - this.x;
+						var diffy = alimento.y - this.y;
+						var dist = Math.hypot(diffx, diffy);
+						if(dist <= 10) {
+							alimento.comer(comida);
+							this.saude += 2 * dt;
+							this.saude = Math.min(this.saude, 1);
+						} else if(dist <= this.DNA.raio_percepcao) {
+							var fx = diffx * this.DNA.atracao_comida / dist;
+							var fy = diffy * this.DNA.atracao_comida / dist;
+							this.vx += fx * dt;
+							this.vy += fy * dt;
+						}
+					}
+					for(var alimento of veneno) {
+						var diffx = alimento.x - this.x;
+						var diffy = alimento.y - this.y;
+						var dist = Math.hypot(diffx, diffy);
+						if(dist <= 10) {
+							alimento.comer(veneno);
+							this.veneno_comido++;
+						} else if(dist <= this.DNA.raio_percepcao) {
+							var fx = -diffx * this.DNA.repulsao_veneno / dist;
+							var fy = -diffy * this.DNA.repulsao_veneno / dist;
+							this.vx += fx * dt;
+							this.vy += fy * dt;
+						}
+					}
+					if(this.x < 10) {
+						this.x = 10;
+						this.vx *= -1;
+					}
+					if(this.x > largura - 10) {
+						this.x = largura - 10;
+						this.vx *= -1;
+					}
+					if(this.y < 10) {
+						this.y = 10;
+						this.vy *= -1;
+					}
+					if(this.y > altura - 10) {
+						this.y = altura - 10;
+						this.vy *= -1;
+					}
+					this.vx /= 1.01;
+					this.vy /= 1.01;
+					this.x += this.vx * dt;
+					this.y += this.vy * dt;
+					if(this.saude <= 0) {
+						array.splice(array.indexOf(this), 1);
+						if(Math.random() < 0.5) {
+							comida.push(new Alimento('comida', this.x, this.y));
+						} else {
+							veneno.push(new Alimento('veneno', this.x, this.y));
+						}
+					} else if(Math.random() < this.DNA.probabilidade_reproducao * this.saude * dt) {
+						this.saude -= 0.25;
+						this.reproducao++;
+						array.push(new SerVivo(this.mutacoes(), this.x, this.y));
+					}
+				}
+				desenhar() {
+					var v = Math.hypot(this.vx, this.vy);
+					var dir = this.vx == 0 && this.vy == 0 ? 0 : this.vy >= 0 ? Math.acos(this.vx / v) : (-Math.acos(this.vx / v));
+					pincel.save();
+					pincel.fillStyle = `rgb(${255 * (1 - this.saude)}, ${255 * this.saude}, 0)`;
+					pincel.translate(this.x, this.y);
+					pincel.rotate(dir);
+					pincel.beginPath();
+					pincel.moveTo(5, 0);
+					pincel.lineTo(-5, 3);
+					pincel.lineTo(-5, -3);
+					pincel.lineTo(5, 0);
+					pincel.fill();
+					pincel.restore();
+				}
+				mutacoes() {
+					return {
+						atracao_comida: Math.clamp(this.DNA.atracao_comida + Math.random() * 0.1 - 0.05, 0, 1),
+						repulsao_veneno: Math.clamp(this.DNA.repulsao_veneno + Math.random() * 0.1 - 0.05, 0, 1),
+						raio_percepcao: Math.clamp(this.DNA.raio_percepcao + Math.random() * 10 - 5, 75, 300),
+						probabilidade_reproducao: Math.clamp(this.DNA.probabilidade_reproducao + Math.random() * 0.01 - 0.005, 0, 0.05)
+					}
+				}
+			}
+			var canvas = document.getElementById('canvas');
+			var pincel = canvas.getContext('2d');
+			var largura = window.innerWidth;
+			var altura = window.innerHeight;
+			canvas.width = largura;
+			canvas.height = altura;
+			window.onresize = function() {
+				largura = window.innerWidth;
+				altura = window.innerHeight;
+				canvas.width = largura;
+				canvas.height = altura;
+			}
+			Math.clamp = function(x, c1, c2) {
+				return Math.max(Math.min(x, c2), c1);
+			}
+			var comida = [];
+			var veneno = [];
+			var seres_vivos = [];
+			var mouse_pressionado = false;
+			function renderizar() {
+				pincel.fillStyle = 'black';
+				pincel.fillRect(0, 0, largura, altura);
+				for(var n = 0;n < (mouse_pressionado ? 50 : 1);n++) {
+					for(var i = seres_vivos.length - 1;i >= 0;i--) {
+						seres_vivos[i].atualizar(comida, veneno, seres_vivos, 0.1);
+					}
+					if(seres_vivos.length == 0) {
+						for(var i = 0;i < 10;i++) {
+							seres_vivos.push(new SerVivo());
+						}
+					}
+					var probabilidade1 = 0.1;
+					var probabilidade2 = probabilidade1 / 9;
+					if(Math.random() < probabilidade1) {
+						comida.push(new Alimento('comida'));
+					}
+					if(Math.random() < probabilidade2) {
+						veneno.push(new Alimento('veneno'));
+					}
+				}
+				for(var ser_vivo of seres_vivos) {
+					ser_vivo.desenhar();
+				}
+				for(var alimento of comida) {
+					alimento.desenhar();
+				}
+				for(var alimento of veneno) {
+					alimento.desenhar();
+				}
+				if(seres_vivos.length < 10000) {
+					requestAnimationFrame(renderizar);
+				}
+			}
+			requestAnimationFrame(renderizar);
+			document.onmousedown = function() {
+				mouse_pressionado = true;
+			}
+			document.onmouseup = function() {
+				mouse_pressionado = false;
+			}
+		</script>
+	</body>
+</html>

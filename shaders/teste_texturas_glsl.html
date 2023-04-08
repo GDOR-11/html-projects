@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang = 'pt-BR'>
+	<head>
+		<meta charset = 'utf-8' name = 'viewport' content = 'width = device-width, initial-scale = 1'>
+		<title>teste texturas</title>
+		<style>
+			body {
+				margin: 0px;
+				overflow: hidden;
+			}
+		</style>
+		<script id = 'vertex_glsl' type = 'vertex_glsl'>
+			attribute vec4 pos;
+ 
+			void main() {
+				gl_Position = pos;
+			}
+		</script>
+		<script id = 'fragment_glsl' type = 'fragment_glsl'>
+			precision highp float;
+
+			uniform vec2 resolucao;
+			uniform sampler2D textura;
+			uniform float tempo;
+			uniform float dt;
+
+			vec2 cmul(vec2 z1, vec2 z2) {
+				return vec2(z1.x * z2.x - z1.y * z2.y, z1.y * z2.x + z1.x * z2.y);
+			}
+			vec2 csq(vec2 z) {
+				return cmul(z, z);
+				// return vec2(z.x * z.x - z.y * z.y, 2.0 * z.x * z.y);
+			}
+
+			void main() {
+				vec2 uv = gl_FragCoord.xy / resolucao;
+				uv.y = 1.0 - uv.y;
+				vec2 coord = (uv - 0.5) * 4.0;
+				vec4 tex = texture2D(textura, uv);
+				tex.x = -log(1.0 / tex.x - 1.0);
+				tex.y = -log(1.0 / tex.y - 1.0);
+				vec2 col = csq(tex.xy) + coord;
+				col.x = 1.0 / (1.0 + exp(-col.x));
+				col.y = 1.0 / (1.0 + exp(-col.y));
+				gl_FragColor = vec4(col, tex.zw);
+				// gl_FragColor = texture2D(textura, uv) + vec4(uv.y, 0.0, uv.x, 0.0);
+			}
+		</script>
+	</head>
+	<body>
+		<canvas id = 'canvas' style = 'background-color: #000;'></canvas>
+		<script>
+			function resize() {
+				largura = window.innerWidth;
+				altura = window.innerHeight;
+				canvas.width = altura;
+				canvas.height = altura;
+				gl.viewport(0, 0, altura, altura);
+			}
+			var canvas = document.getElementById('canvas');
+			var gl = canvas.getContext('webgl');
+			var codigo_vertex_shader = document.getElementById('vertex_glsl').innerHTML;
+			var codigo_fragment_shader = document.getElementById('fragment_glsl').innerHTML;
+			resize();
+			window.onresize = resize;
+
+			function cria_shader(tipo, codigo) {
+				var shader = gl.createShader(tipo);
+				gl.shaderSource(shader, codigo);
+				gl.compileShader(shader);
+				if(gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+					return shader;
+				}
+				console.error('erro de compilação:\n\n' + gl.getShaderInfoLog(shader));
+				gl.deleteShader(shader);
+			}
+
+			var vertex_shader = cria_shader(gl.VERTEX_SHADER, codigo_vertex_shader);
+			var fragment_shader = cria_shader(gl.FRAGMENT_SHADER, codigo_fragment_shader);
+
+			function cria_programa(vertex_shader, fragment_shader) {
+				var programa = gl.createProgram();
+				gl.attachShader(programa, vertex_shader);
+				gl.attachShader(programa, fragment_shader);
+				gl.linkProgram(programa);
+				if(gl.getProgramParameter(programa, gl.LINK_STATUS)) {
+					return programa;
+				}
+				console.error('erro de compilação:\n\n' + gl.getProgramInfoLog(programa));
+				gl.deleteProgram(programa);
+			}
+
+			var programa = cria_programa(vertex_shader, fragment_shader);
+
+			var localizacao_atributo_pos = gl.getAttribLocation(programa, 'pos');
+
+			gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
+
+			var pontos = [
+				-1, -1,
+				-1, 1,
+				1, 1,
+				-1, -1,
+				1, -1,
+				1, 1
+			];
+
+			gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(pontos), gl.STATIC_DRAW);
+
+			gl.useProgram(programa);
+
+			var localizacao_uniform_resolucao = gl.getUniformLocation(programa, 'resolucao');
+			gl.uniform2f(localizacao_uniform_resolucao, canvas.width, canvas.height);
+			var tempo_inicial = Date.now();
+			var ultimo_tempo = Date.now();
+			var localizacao_uniform_tempo = gl.getUniformLocation(programa, 'tempo');
+			var localizacao_uniform_dt = gl.getUniformLocation(programa, 'dt');
+
+			gl.enableVertexAttribArray(localizacao_atributo_pos);
+
+			gl.vertexAttribPointer(localizacao_atributo_pos, 2, gl.FLOAT, false, 0, 0);
+
+
+			var agora = Date.now();
+			async function renderizar() {
+				gl.uniform1f(localizacao_uniform_tempo, (Date.now() - tempo_inicial) / 1000);
+				gl.uniform1f(localizacao_uniform_dt, (Date.now() - ultimo_tempo) / 1000);
+				ultimo_tempo = Date.now();
+				gl.drawArrays(gl.TRIANGLES, 0, pontos.length);
+				var img = new Image();
+				img.src = canvas.toDataURL();
+				img.onload = function() {
+					gl.bindTexture(gl.TEXTURE_2D, textura);
+					gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA,gl.UNSIGNED_BYTE, img);
+					if(potencia_de_dois(canvas.width) && potencia_de_dois(canvas.heigth)) {
+						gl.generateMipmap(gl.TEXTURE_2D);
+					} else {
+						gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+						gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+						gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+					}
+				}
+				requestAnimationFrame(renderizar);
+			}
+			requestAnimationFrame(renderizar);
+
+
+			// criando textura
+			var textura = gl.createTexture();
+			gl.bindTexture(gl.TEXTURE_2D, textura);
+			var w = 4096;
+			var h = 4096;
+			var data = new Uint8Array(4 * w * h);
+			for(var x = 0;x < w;x++) {
+				for(var y = 0;y < h;y++) {
+					var index = 4 * (x + h * y);
+					data[index] = 255 * x / w;
+					data[index + 1] = 255 * y / h;
+					data[index + 2] = 0;
+					data[index + 3] = 255;
+				}
+			}
+			gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, w, h, 0, gl.RGBA, gl.UNSIGNED_BYTE, data);
+			gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+
+			function potencia_de_dois(x) {
+				return (x & (x - 1)) == 0;
+			}
+		</script>
+	</body>
+</html>

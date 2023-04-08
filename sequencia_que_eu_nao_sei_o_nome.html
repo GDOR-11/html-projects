@@ -1,0 +1,26 @@
+<script>
+	function proximo_numero() {
+		var i = 0;
+		while(i < item_atual.length) {
+			var j = 1;
+			while(item_atual[i] == item_atual[i + 1]) {
+				j++;
+				i++;
+			}
+			i++;
+			proximo_item.push(j);
+			proximo_item.push(item_atual[i - 1]);
+			if(j == 4 || item_atual[i - 1] == 4) {
+				console.log('ralô');
+			}
+		}
+		document.write(proximo_item + '<br>');
+	}
+	var item_atual = [1];
+	var proximo_item = [];
+	for(var i = 0;i < 50;i++) {
+		proximo_numero();
+		item_atual = proximo_item;
+		proximo_item = [];
+	}
+</script>

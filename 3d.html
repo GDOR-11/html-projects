@@ -1,0 +1,154 @@
+<canvas width = 1528 height = 705>DEIXA DE SER PREGUIÇOSO E USA UM NAVEGADOR QUE ACEITA CANVAS CARAI</canvas>
+<script>
+	var tela = document.querySelector("canvas");
+	var pincel = tela.getContext("2d");
+	function limpaTela() {
+		pincel.clearRect(0, 0, 1528, 705);
+	}
+	function moveto(x, y, z) {
+		X = x;
+		Y = y;
+		Z = z;
+		giraEixoX(X, Y, Z, θx);
+		giraEixoY(X, Y, Z, θy);
+		giraEixoZ(X, Y, Z, θz);
+		mova(X, Y, Z, tX, tY, tZ);
+		projeção(X, Y, Z, fov);
+		pincel.moveTo(X + 764, Y + 352.5);
+	}
+	function lineto(x, y, z) {
+		X = x;
+		Y = y;
+		Z = z;
+		giraEixoX(X, Y, Z, θx);
+		giraEixoY(X, Y, Z, θy);
+		giraEixoZ(X, Y, Z, θz);
+		mova(X, Y, Z, tX, tY, tZ);
+		projeção(X, Y, Z, fov);
+		pincel.lineTo(X + 764, Y + 352.5);
+	}
+	function renderizador() {
+		pincel.fillStyle = "hsla(240, 100%, 50%, 0.25)";
+		pincel.strokeStyle = "hsl(240, 100%, 50%)";
+		limpaTela();
+		pincel.beginPath();
+		moveto(50, 50, 50);
+		lineto(50, -50, 50);
+		lineto(-50, -50, 50);
+		lineto(-50, 50, 50);
+		lineto(50, 50, 50);
+		pincel.fill();
+		pincel.stroke();
+		pincel.beginPath();
+		moveto(50, 50, -50);
+		lineto(50, -50, -50);
+		lineto(-50, -50, -50);
+		lineto(-50, 50, -50);
+		lineto(50, 50, -50);
+		pincel.fill();
+		pincel.stroke();
+		pincel.beginPath();
+		moveto(50, 50, 50);
+		lineto(50, 50, -50);
+		lineto(-50, 50, -50);
+		lineto(-50, 50, 50);
+		lineto(50, 50, 50);
+		pincel.fill();
+		pincel.stroke();
+		pincel.beginPath();
+		moveto(50, -50, 50);
+		lineto(50, -50, -50);
+		lineto(-50, -50, -50);
+		lineto(-50, -50, 50);
+		lineto(50, -50, 50);
+		pincel.fill();
+		pincel.stroke();
+		pincel.beginPath();
+		moveto(50, 50, 50);
+		lineto(50, 50, -50);
+		lineto(50, -50, -50);
+		lineto(50, -50, 50);
+		lineto(50, 50, 50);
+		pincel.fill();
+		pincel.stroke();
+		pincel.beginPath();
+		moveto(-50, 50, 50);
+		lineto(-50, 50, -50);
+		lineto(-50, -50, -50);
+		lineto(-50, -50, 50);
+		lineto(-50, 50, 50);
+		pincel.fill();
+		pincel.stroke();
+	}
+	function identificaTeclas(event) {
+		if (event.keyCode == 65)
+			tX -= 5;
+		if (event.keyCode == 87)
+			tY -= 5;
+		if (event.keyCode == 68)
+			tX += 5;
+		if (event.keyCode == 83)
+			tY += 5;
+		if (event.keyCode == 38)
+			tZ += 5;
+		if (event.keyCode == 40 && tZ >= 56)
+			tZ -= 5;
+		if (event.keyCode == 39)
+			θz += 0.05;
+		if (event.keyCode == 37)
+			θz -= 0.05;
+		if (event.keyCode == 73)
+			θx -= 0.05;
+		if (event.keyCode == 75)
+			θx += 0.05;
+		if (event.keyCode == 74)
+			θy += 0.05;
+		if (event.keyCode == 76)
+			θy -= 0.05;
+		if (event.keyCode == 107)
+			fov += 5;
+		if (event.keyCode == 109 && fov > 5)
+			fov -= 5;
+	}
+	function projeção(x, y, z, FOV) {
+		X = x * FOV / z;
+		Y = y * FOV / z;
+		Z = 0;
+	}
+	function mova(x, y, z, tx, ty, tz) {
+		X = x + tx;
+		Y = y + ty;
+		Z = z + tz;
+	}
+	function giraEixoX(x, y, z, θ) {
+		X = x;
+		Y = y * Math.cos(θ) - z * Math.sin(θ);
+		Z = y * Math.sin(θ) + z * Math.cos(θ);
+	}
+	function giraEixoY(x, y, z, θ) {
+		X = z * Math.sin(θ) + x * Math.cos(θ);
+		Y = y;
+		Z = z * Math.cos(θ) - x * Math.sin(θ);
+	}
+	function giraEixoZ(x, y, z, θ) {
+		X = x * Math.cos(θ) - y * Math.sin(θ);
+		Y = x * Math.sin(θ) + y * Math.cos(θ);
+		Z = z;
+	}
+	var fps = 64;
+	var fov = 1000;
+	var X = 0;
+	var Y = 0;
+	var Z = 0;
+	var θx = 0;
+	var θy = 0;
+	var θz = 0;
+	var tX = 0;
+	var tY = 0;
+	var tZ = 250;
+	var distanciaMinima = 1;
+	var percentual;
+	renderizador();
+	setInterval(renderizador, 1000/fps);
+	document.onkeydown = identificaTeclas;
+</script>

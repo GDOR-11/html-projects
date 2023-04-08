@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang = 'pt-BR'>
+	<head>
+		<meta charset = 'utf-8' name = 'viewport' content = 'width = device-width, initial-scale = 1'>
+		<meta http-equiv = 'X-UA-Compatible' content = 'ie = edge'>
+		<title>delaunay triangulation</title>
+		<style>
+			body {
+				margin: 0px;
+				overflow: hidden;
+			}
+			p {
+				color: #fff;
+			}
+			#file-div {
+				background-color: rgba(255, 255, 255, 0.25);
+				display: block;
+				width: 100%;
+				height: 100%;
+				position: absolute;
+				top: 0px;
+				left: 0px;
+			}
+			#file-p {
+				width: 100%;
+				text-align: center;
+				position: absolute;
+				top: 15%;
+				font-size: 1000%;
+			}
+			#download-button {
+				background-color: transparent;
+				border: none;
+				position: absolute;
+				top: 5px;
+				left: 10px;
+			}
+		</style>
+		<script src = 'Delaunator.min.js'></script>
+		<script src = 'PoissonDiscSampler.js'></script>
+	</head>
+	<body>
+		<canvas id = 'canvas' style = 'background-color: #000;'></canvas>
+		<button id = 'download-button' onclick = 'download();'>
+			<svg width = 50 height = 50>
+				<g style = 'fill: none;stroke: grey;stroke-width: 6;stroke-linejoin: round;stroke-linecap: round;'>
+					<polyline points = '6,30 6,44 44,44 44,30'></polyline>
+					<path d = 'M25,6 L25,30 L35,20 M25,30 L15,20'></path>
+				</g>
+			</svg>
+		</button>
+		<div id = 'file-div'>
+			<p id = 'file-p'>drop file here</p>
+		</div>
+		<script>
+			function desenhar() {
+				var console_open = window.outerWidth - window.innerWidth >= 250 || window.outerHeight - window.innerHeight >= 174;
+				if(console_open) {
+					console.clear();
+					console.time('total');
+					console.time('delaunator');
+				}
+				var delaunay = new Delaunator(pontos);
+				if(console_open) {
+					console.timeEnd('delaunator');
+					console.time('drawing');
+				}
+				pincel.clearRect(0, 0, largura, altura);
+				pincel.strokeStyle = 'blue';
+				pincel.beginPath()
+				for(var i = 0;i < delaunay.triangles.length;i += 3) {
+					var index_1 = delaunay.triangles[i] * 2;
+					pincel.moveTo(pontos[index_1], pontos[index_1 + 1]);
+					var index_2 = delaunay.triangles[i + 1] * 2;
+					pincel.lineTo(pontos[index_2], pontos[index_2 + 1]);
+					var index_3 = delaunay.triangles[i + 2] * 2;
+					pincel.lineTo(pontos[index_3], pontos[index_3 + 1]);
+					pincel.closePath();
+				}
+				pincel.stroke();
+				pincel.strokeStyle = 'red';
+				pincel.lineWidth = 2;
+				pincel.beginPath();
+				for(var i = 0;i < delaunay.hull.length;i++) {
+					var index = delaunay.hull[i] * 2;
+					pincel.lineTo(pontos[index], pontos[index + 1]);
+				}
+				pincel.closePath();
+				pincel.stroke();
+				pincel.fillStyle = 'yellow';
+				pincel.lineWidth = 1;
+				for(var i = 0;i < pontos.length;i += 2) {
+					pincel.beginPath();
+					pincel.arc(pontos[i], pontos[i + 1], 5, 0, 2 * Math.PI);
+					pincel.fill();
+				}
+				if(console_open) {
+					console.timeEnd('drawing');
+					console.timeEnd('total');
+				}
+			}
+			function procecar_arquivo(file) {
+				var file_reader = new FileReader;
+				file_reader.onload = function() {
+					var csv = file_reader.result;
+					pontos = csv.split(/[,\n]/).map(str => Number(str));
+					desenhar();
+				}
+				file_reader.readAsText(file);
+			}
+            function download() {
+            	var nome_arquivo = 'points.txt';
+            	var texto = '';
+            	for(var i = 0;i < pontos.length;i += 2) {
+            		texto += pontos[i] + ',' + pontos[i + 1] + '\n';
+            	}
+				var a = document.createElement('a');
+				a.setAttribute('href','data:text/plain;charset=utf-8, ' + encodeURIComponent(texto));
+				a.setAttribute('download', nome_arquivo);
+				document.body.appendChild(a);
+				a.click();
+				document.body.removeChild(a);
+            }
+			function resize() {
+				largura = window.innerWidth;
+				altura = window.innerHeight;
+				img_data = pincel.getImageData(0, 0, canvas.width, canvas.height);
+				canvas.width = Math.max(canvas.width, largura);
+				canvas.height = Math.max(canvas.height, altura);
+				pincel.putImageData(img_data, 0, 0);
+
+				if(pontos != undefined) {
+					desenhar();
+				}
+			}
+			var canvas = document.getElementById('canvas');
+			var pincel = canvas.getContext('2d');
+			resize();
+			window.onresize = resize;
+			var poisson_disc_sampler = new PoissonDiscSampler(25, 8, largura - 100, altura - 100);
+			var pontos = poisson_disc_sampler.sample();
+			for(var i = pontos.length - 1;i >= 0;i--) {
+				pontos.push(pontos[i].x + 50, pontos[i].y + 50);
+				pontos.splice(i, 1);
+			}
+			// var pontos = [];
+			// for(var i = 0;i < 1000;i++) {
+			// 	pontos.push(Math.floor((Math.random() * 0.9 + 0.05) * largura), Math.floor((Math.random() * 0.8 + 0.1) * altura));
+			// }
+			desenhar();
+
+			var passive = false;
+			try {
+				window.addEventListener('event-listener', null, Object.defineProperty({}, 'passive', {get: () => passive = {passive: true}}));
+			} catch(error) {}
+
+			var ponto_segurado;
+			canvas.addEventListener('mousedown', function(event) {
+				if(event.button == 0) {
+					var arrastando = false;
+					for(var i = 0;i < pontos.length;i += 2) {
+						if(Math.hypot(event.clientX - pontos[i], event.clientY - pontos[i + 1]) < 10) {
+							ponto_segurado = i;
+							arrastando = true;
+						}
+					}
+					if(!arrastando) {
+						pontos.push(event.clientX, event.clientY);
+					}
+					desenhar();
+				}
+			}, passive);
+			canvas.addEventListener('contextmenu', function(event) {
+				for(var i = 0;i < pontos.length;i += 2) {
+					if(Math.hypot(event.clientX - pontos[i], event.clientY - pontos[i + 1]) < 10) {
+						pontos.splice(i, 2);
+					}
+				}
+				desenhar();
+				event.preventDefault();
+			});
+			canvas.addEventListener('mouseup', function(event) {
+				ponto_segurado = undefined;
+			}, passive);
+			canvas.addEventListener('mousemove', function(event) {
+				if(ponto_segurado != undefined) {
+					pontos[ponto_segurado] = event.clientX;
+					pontos[ponto_segurado + 1] = event.clientY;
+					desenhar();
+				}
+			}, passive);
+
+			var file_div = document.getElementById('file-div');
+			var esconder_file_div = false;
+				file_div.style.display = 'none';
+			window.addEventListener('dragenter', function(event) {
+				event.stopPropagation();
+				event.preventDefault();
+			});
+			file_div.addEventListener('dragleave', function(event) {
+				esconder_file_div = true;
+				setTimeout(function() {
+					file_div.style.display = esconder_file_div ? 'none' : 'block';
+				}, 100);
+				event.stopPropagation();
+				event.preventDefault();
+			});
+			window.addEventListener('dragover', function(event) {
+				esconder_file_div = false;
+				file_div.style.display = 'block';
+				event.stopPropagation();
+				event.preventDefault();
+			});
+			window.addEventListener('drop', function(event) {
+				file_div.style.display = 'none';
+				event.stopPropagation();
+				event.preventDefault();
+
+				var files = event.dataTransfer.files;
+
+				if(files.length == 1) {
+					procecar_arquivo(files[0]);
+				} else {
+					alert('drop one file');
+				}
+			});
+		</script>
+	</body>
+</html>

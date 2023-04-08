@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang = 'en-US'>
+	<head>
+		<meta charset = 'utf-8' name = 'viewport' content = 'width = device-width, initial-scale = 1'>
+		<meta http-equiv = 'X-UA-Compatible' content = 'ie = edge'>
+		<title>multiple pendulums</title>
+		<style>
+			body {
+				margin: 0px;
+				overflow: hidden;
+			}
+			p {
+				color: white;
+			}
+			p.title {
+				font-size: 300%;
+				margin: 20px;
+			}
+			p.description {
+				font-size: 100%;
+				margin: 0px;
+			}
+			button.big {
+				font-size: 300%;
+			}
+			button.transparent {
+				background-color: rgba(0, 0, 0, 0);
+				border-style: none;
+			}
+			.margin {
+				margin: 10px;
+			}
+			.big-margin-top {
+				margin-top: 100px;
+			}
+			.fullscreen {
+				width: 100%;
+				height: 100%;
+			}
+			.top-left {
+				position: absolute;
+				top: 0px;
+				left: 0px;
+			}
+		</style>
+	</head>
+	<body>
+		<canvas class = 'top-left' id = 'background-canvas' style = 'background-color: #000;'></canvas>
+		<canvas class = 'top-left' id = 'canvas'></canvas>
+		<div class = 'top-left fullscreen' id = 'form' style = 'text-align: center;overflow: auto;'>
+			<div>
+				<p class = 'title'>number of pendulums</p>
+				<p class = 'description'>the number of pendulums atached one to another</p><br>
+				<input id = 'number of pendulums' type = 'text' oninput = 'this.value = this.value.replace(/\D/, "");'>
+			</div>
+			<div>
+				<p class = 'title'>physics iterations</p>
+				<p class = 'description'>the number of times verlet integration is done per frame,</p>
+				<p class = 'description'>dt is calculated automatically based on this number</p><br>
+				<input id = 'physics iterations' type = 'text' oninput = 'this.value = this.value.replace(/\D/, "");'>
+			</div>
+			<div>
+				<p class = 'title'>joint iterations</p>
+				<p class = 'description'>the number of times joints get updated to maintain their length,</p>
+				<p class = 'description'>the greather physics iterations is the smaller this number needs to be</p><br>
+				<input id = 'joint iterations' type = 'text' oninput = 'this.value = this.value.replace(/\D/, "");'>
+			</div>
+			<button class = 'big big-margin-top' onclick = 'start_simulation();'>start simulation</button>
+		</div>
+		<button class = 'top-left margin transparent' id = 'restart' style = 'display: none;' onclick = 'reset_pendulums();'>
+			<svg width = 65 height = 65>
+				<g style = 'fill: none;stroke: grey;stroke-width: 5px;stroke-linecap: round;'>
+					<path d = '
+						M 45 25
+						A 20 20 0 1 0 25 45
+						M 38.50480947161671 21.25
+						L 45 25
+						L 48.75 18.504809471616706
+					'></path>
+				</g>
+			</svg>
+		</button>
+		<script>
+			class Point {
+				constructor(x, y, vx, vy, locked = false, draw_path = false) {
+					this.x = x;
+					this.y = y;
+					this.prev_x = x - vx * dt;
+					this.prev_y = y - vy * dt;
+					this.last_drawn_x = x;
+					this.last_drawn_y = y;
+					this.locked = locked;
+					this.draw_path = draw_path;
+				}
+				add(x) {
+					if(x instanceof Point) {
+						return new Point(this.x + x.x, this.y + x.y);
+					}
+					return new Point(this.x + x, this.y + x);
+				}
+				sub(x) {
+					if(x instanceof Point) {
+						return new Point(this.x - x.x, this.y - x.y);
+					}
+					return new Point(this.x - x, this.y - x);
+				}
+				mul(x) {
+					if(x instanceof Point) {
+						return new Point(this.x * x.x, this.y * x.y);
+					}
+					return new Point(this.x * x, this.y * x);
+				}
+				div(x) {
+					if(x instanceof Point) {
+						return new Point(this.x / x.x, this.y / x.y);
+					}
+					return new Point(this.x / x, this.y / x);
+				}
+				set(v) {
+					this.x = v.x;
+					this.y = v.y;
+				}
+				norm() {
+					var l = this.length();
+					if(l == 0) {
+						return new Point(0, 0, this.vx, this.vy, this.locked);
+					}
+					return this.div(this.length());
+				}
+				length() {
+					return Math.hypot(this.x, this.y);
+				}
+				update(dt) {
+					if(this.locked) {
+						return;
+					}
+					var x = this.x;
+					var y = this.y;
+					this.x += this.x - this.prev_x + gx * dt * dt;
+					this.y += this.y - this.prev_y + gy * dt * dt;
+					this.prev_x = x;
+					this.prev_y = y;
+				}
+				render() {
+					ctx.lineWidth = 10;
+					ctx.strokeStyle = 'yellow';
+					ctx.lineJoin = 'round';
+					ctx.strokeRect(this.x, this.y, 1, 1);
+					if(this.draw_path) {
+						ctx2.lineWidth = 1;
+						ctx2.strokeStyle = 'blue';
+						ctx2.lineJoin = 'mitter';
+						ctx2.beginPath();
+						ctx2.moveTo(this.last_drawn_x, this.last_drawn_y);
+						ctx2.lineTo(this.x, this.y);
+						ctx2.stroke();
+						this.last_drawn_x = this.x;
+						this.last_drawn_y = this.y;
+					}
+				}
+			}
+			class Joint {
+				constructor(pointA, pointB) {
+					this.pointA = pointA;
+					this.pointB = pointB;
+					this.length = pointA.sub(pointB).length();
+				}
+				update(dt) {
+					var center = this.pointA.add(this.pointB).div(2);
+					var dir = this.pointA.sub(this.pointB).norm();
+					if(!this.pointA.locked) {
+						this.pointA.set(center.add(dir.mul(this.length / 2)));
+					}
+					if(!this.pointB.locked) {
+						this.pointB.set(center.sub(dir.mul(this.length / 2)));
+					}
+				}
+				render() {
+					ctx.lineWidth = 3;
+					ctx.strokeStyle = 'grey';
+					ctx.lineJoin = 'mitter';
+					ctx.beginPath();
+					ctx.moveTo(this.pointA.x, this.pointA.y);
+					ctx.lineTo(this.pointB.x, this.pointB.y);
+					ctx.stroke();
+				}
+			}
+			function resize() {
+				width = window.innerWidth;
+				height = window.innerHeight;
+				canvas.width = width;
+				canvas.height = height;
+				img_data = ctx2.getImageData(0, 0, canvas2.width, canvas2.height);
+				canvas2.width = Math.max(canvas2.width, width);
+				canvas2.height = Math.max(canvas2.height, height);
+				ctx2.putImageData(img_data, 0, 0);
+			}
+			function start_simulation() {
+				num_pendulums = Number(document.getElementById('number of pendulums').value);
+				physics_iterations = Number(document.getElementById('physics iterations').value);
+				joint_iterations = Number(document.getElementById('joint iterations').value);
+				document.body.removeChild(document.getElementById('form'));
+				document.getElementById('restart').style.display = 'block';
+
+				num_points = num_pendulums + 1;
+				dt = 1 / (60 * physics_iterations);
+
+				reset_pendulums();
+
+				requestAnimationFrame(render);
+			}
+			function reset_pendulums() {
+				ctx2.clearRect(0, 0, canvas2.width, canvas2.height);
+
+				var length = Math.min(width / 2, height - 100);
+				for(var i = 0;i < num_points;i++) {
+					points[i] = new Point(i * length / (num_points - 1) + width / 2, 100, 0, 0, !i, i == num_points - 1);
+				}
+				for(var i = 0;i < points.length - 1;i++) {
+					joints[i] = new Joint(points[i], points[i + 1]);
+				}
+			}
+			var canvas = document.getElementById('canvas');
+			var canvas2 = document.getElementById('background-canvas');
+			var ctx = canvas.getContext('2d');
+			var ctx2 = canvas2.getContext('2d');
+			resize();
+			window.onresize = resize;
+
+			var gx = 0;
+			var gy = 980.665;
+			var num_pendulums;
+			var physics_iterations;
+			var joint_iterations;
+
+			var num_points;
+			var dt;
+
+			var points = [];
+			var joints = [];
+
+			function render() {
+				ctx.clearRect(0, 0, width, height);
+				for(var i = 0;i < physics_iterations;i++) {
+					for(var point of points) {
+						point.update(dt);
+					}
+					for(var j = 0;j < joint_iterations;j++) {
+						for(var joint of joints) {
+							joint.update(dt);
+						}
+					}
+				}
+				for(var joint of joints) {
+					joint.render();
+				}
+				for(var point of points) {
+					point.render();
+				}
+				requestAnimationFrame(render);
+			}
+		</script>
+	</body>
+</html>
